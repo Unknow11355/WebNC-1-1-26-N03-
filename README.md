@@ -7,11 +7,17 @@
 
 ## Khung backend ba tầng
 
-Đề tài: Hệ thống quản lý vận hành siêu thị. Phần V1 dựng khung Node.js + Express + MySQL để nhóm phát triển theo tiến trình thực hành. Nhánh `Linh/v1/buoi3` chứa khung chuẩn bị cho Buổi 4.
+Đề tài: Hệ thống quản lý vận hành siêu thị. Phần V1 dựng khung Node.js + Express + MySQL để nhóm phát triển theo tiến trình thực hành. Nhánh `Linh/v1/buoi4` chứa phần kiến trúc và quy tắc code của Buổi 4.
+
+### Quy tắc làm việc chung
+
+Đọc [Quy tắc code của nhóm](CONTRIBUTING.md) trước khi thêm module: tài liệu chốt ranh giới ba tầng, tên file/biến, URL `/api/v1`, HTTP method/status, JSON, lỗi, SQL, bảo mật, Git và review.
+
+Trong `backend`, chạy `npm run format` để định dạng và `npm run check` trước khi push. Lệnh kiểm tra gồm ESLint, Prettier và test; GitHub Actions chạy lại trên mỗi push/pull request. Quy tắc bảo mật/nghiệp vụ trong tài liệu được áp dụng khi phát triển các phần tiếp theo.
 
 ### Chạy dự án
 
-Yêu cầu Node.js 22 trở lên và MySQL với lược đồ Buổi 3. Chạy trong thư mục `backend`:
+Yêu cầu Node.js 22.13+ (nhánh 22) hoặc Node.js 24 trở lên và MySQL với lược đồ Buổi 3. CI dùng Node.js 22; nhóm nên dùng cùng phiên bản nhánh 22 khi phát triển. Chạy trong thư mục `backend`:
 
 ```powershell
 cd backend
