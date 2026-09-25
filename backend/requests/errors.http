@@ -1,0 +1,23 @@
+# Dùng REST Client của VS Code hoặc nhập vào Postman.
+@baseUrl = http://localhost:3000/api/v1
+
+### 200 - HTTP server hoạt động
+GET {{baseUrl}}/health
+
+### 400 - phân trang sai, không cần database
+GET {{baseUrl}}/products?limit=0
+
+### 404 - URL không tồn tại
+GET {{baseUrl}}/does-not-exist
+
+### 400 - JSON sai, bị chặn trước route
+POST {{baseUrl}}/products
+Content-Type: application/json
+
+{ "product_name": }
+
+### 415 - charset không hỗ trợ, bị chặn trước route
+POST {{baseUrl}}/products
+Content-Type: application/json; charset=invalid
+
+{}
