@@ -2,8 +2,12 @@ import { AppError } from '../errors/app-error.js';
 
 function positiveInteger(value, fallback, field, max) {
   if (value === undefined) return fallback;
-  if (typeof value !== 'string' || !/^[1-9]\d*$/.test(value)
-      || !Number.isSafeInteger(Number(value)) || Number(value) > max) {
+  if (
+    typeof value !== 'string' ||
+    !/^[1-9]\d*$/.test(value) ||
+    !Number.isSafeInteger(Number(value)) ||
+    Number(value) > max
+  ) {
     throw new AppError(400, 'VALIDATION_ERROR', 'Tham số phân trang không hợp lệ', [
       { field, issue: `Phải là số nguyên từ 1 đến ${max}` },
     ]);

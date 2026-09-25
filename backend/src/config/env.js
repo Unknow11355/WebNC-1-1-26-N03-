@@ -18,5 +18,7 @@ export const env = {
     database: process.env.DB_NAME ?? 'mini_supermarket',
   },
   corsOrigins: (process.env.CORS_ORIGINS ?? 'http://localhost:5173')
-    .split(',').map(value => value.trim()).filter(Boolean),
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean),
 };

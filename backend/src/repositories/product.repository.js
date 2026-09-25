@@ -9,9 +9,9 @@ export function createProductRepository(db) {
          ORDER BY product_id ASC LIMIT ? OFFSET ?`,
         ['active', String(limit), String(offset)],
       );
-      const [counts] = await db.execute(
-        'SELECT COUNT(*) AS total FROM products WHERE status = ?', ['active'],
-      );
+      const [counts] = await db.execute('SELECT COUNT(*) AS total FROM products WHERE status = ?', [
+        'active',
+      ]);
       return { rows, total: Number(counts[0].total) };
     },
   };
