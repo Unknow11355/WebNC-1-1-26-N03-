@@ -67,6 +67,8 @@ Các factory nhận dependency qua tham số để có thể kiểm thử mà kh
 
 ### Định dạng phản hồi
 
+Xem [Hướng dẫn xử lý lỗi tập trung và chụp minh chứng](docs/xu-ly-loi-tap-trung.md). `backend/requests/errors.http` chứa request mẫu lỗi 400, 404 và 415. Log cấu trúc ghi thông tin chẩn đoán tối thiểu, không ghi nguyên lỗi SQL hay dữ liệu nhạy cảm.
+
 Thành công:
 
 ```json
@@ -106,7 +108,7 @@ Hiện chỉ có hai API công khai health và danh sách sản phẩm. Chưa c�
 
 ### Kiểm chứng
 
-`npm test` chạy bốn nhóm kiểm thử qua HTTP: đi đủ ba tầng với DB giả lập và tham số hóa; từ chối phân trang sai trước khi truy vấn; health/404/JSON sai; không lộ SQL hay stack trace khi lỗi DB. Bộ test không yêu cầu database thật và không chứng minh tương thích schema đã triển khai. Khi Vinh nhập SQL Buổi 3, chạy thêm:
+`npm test` kiểm tra luồng ba tầng với DB giả lập, phân trang, health/404, JSON sai, body quá lớn, charset sai, ánh xạ lỗi SQL, trace ID và không lộ bí mật trong phản hồi/log. Bộ test không yêu cầu database thật và không chứng minh tương thích schema đã triển khai. Khi Vinh nhập SQL Buổi 3, chạy thêm:
 
 ```powershell
 Invoke-RestMethod 'http://localhost:3000/api/v1/health'
