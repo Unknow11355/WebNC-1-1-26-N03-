@@ -14,7 +14,7 @@ export function createApp({ productRepository, corsOrigins = [] }) {
     res.setHeader('X-Request-Id', req.traceId);
     next();
   });
-  app.use(cors({ origin: corsOrigins }));
+  app.use(cors({ origin: corsOrigins, exposedHeaders: ['X-Request-Id'] }));
   app.use(express.json({ limit: '1mb' }));
   app.use('/api/v1', createRoutes(createProductService(productRepository)));
   app.use((req, res, next) => next(new AppError(404, 'NOT_FOUND', 'Không tìm thấy API yêu cầu')));

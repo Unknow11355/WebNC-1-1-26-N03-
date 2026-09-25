@@ -1,24 +1,27 @@
-import { AppError } from '../errors/app-error.js';
+import { normalizeError } from '../errors/normalize-error.js';
 
 export function errorHandler(error, req, res, next) {
   if (res.headersSent) return next(error);
-  let known = error instanceof AppError;
-  if (error.type === 'entity.parse.failed') {
-    error = new AppError(400, 'VALIDATION_ERROR', 'Nội dung JSON không hợp lệ');
-    known = true;
-  } else if (error.type === 'entity.too.large') {
-    error = new AppError(413, 'PAYLOAD_TOO_LARGE', 'Nội dung yêu cầu quá lớn');
-    known = true;
-  }
-  if (!known) console.error(`[${req.traceId}]`, error);
-  res.status(known ? error.status : 500).json({
+  const normalized = normalizeError(error);
+  // Không serialize lỗi gốc vì có thể chứa SQL, mật khẩu hoặc token.
+  const event = {
+    event: 'request_failed',
+    traceId: req.traceId,
+    timestamp: new Date().toISOString(),
+    method: req.method,
+    status: normalized.status,
+    code: normalized.code,
+  };
+  if (normalized.status >= 500) console.error(JSON.stringify(event));
+  else console.warn(JSON.stringify(event));
+  res.status(normalized.status).json({
     success: false,
     error: {
-      code: known ? error.code : 'INTERNAL_ERROR',
-      message: known ? error.message : 'Hệ thống đang gặp sự cố, vui lòng thử lại',
-      details: known ? error.details : [],
+      code: normalized.code,
+      message: normalized.message,
+      details: normalized.details,
       traceId: req.traceId,
-      timestamp: new Date().toISOString(),
+      timestamp: event.timestamp,
       path: req.path,
     },
   });
