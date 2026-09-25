@@ -99,6 +99,8 @@ Service có thể ném `AppError(status, code, message, details)` cho lỗi dự
 
 ### Bàn giao các phần việc tiếp theo
 
+Xem [Checklist Buổi 4 cho Vinh và Kiên](docs/checklist-buoi4-vinh-kien.md): việc cần làm theo từng vai trò, hợp đồng tích hợp đề xuất, đầu ra và bảng nghiệm thu.
+
 - Linh (V1): cấu trúc ba tầng, cấu hình chung, xử lý lỗi tập trung và rà soát cách các tầng kết nối.
 - Vinh (V2 và V3): lược đồ/seed, repository và nghiệp vụ được giao. Giao dịch nhiều bảng cần dùng cùng một connection, có commit/rollback và release.
 - Kiên (V3 và V4): nghiệp vụ được giao, bcrypt/Argon2, đăng ký/đăng nhập/đăng xuất, middleware xác thực/quyền chức năng và kiểm thử quyền sở hữu.
