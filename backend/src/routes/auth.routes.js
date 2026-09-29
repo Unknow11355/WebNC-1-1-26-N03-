@@ -10,14 +10,14 @@ export function createAuthRoutes() {
     const accessToken = jwt.sign(
       { userId: 3, email: email || 'customer.a@mini.local', role: 'customer' },
       process.env.JWT_SECRET || 'super_secret_key_demo',
-      { expiresIn: '1h' }
+      { expiresIn: '1h' },
     );
     return res.json({
       success: true,
       data: {
         accessToken,
-        user: { email: email || 'customer.a@mini.local', role: 'customer' }
-      }
+        user: { email: email || 'customer.a@mini.local', role: 'customer' },
+      },
     });
   });
 
