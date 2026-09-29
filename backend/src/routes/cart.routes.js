@@ -1,9 +1,8 @@
 import { Router } from 'express';
 import { createCartController } from '../controllers/cart.controller.js';
 
-// requireAuth và requireRole được Kiên cung cấp khi tích hợp auth.
-// Hợp đồng bắt buộc của middleware là req.auth = { userId, role }.
 export function createCartRoutes({ service, requireAuth, requireRole }) {
+  if (!service) throw new TypeError('Cart routes require service');
   if (typeof requireAuth !== 'function' || typeof requireRole !== 'function') {
     throw new TypeError('Cart routes require auth middleware functions');
   }

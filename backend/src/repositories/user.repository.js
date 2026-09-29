@@ -1,4 +1,4 @@
-// Tầng truy cập dữ liệu: chỉ SQL tham số hóa, không xử lý HTTP hoặc quyền.
+// Repository tài khoản: SQL tham số hóa, không xử lý HTTP/quyền.
 export function createUserRepository(db) {
   if (!db) throw new TypeError('User repository requires a database executor');
 

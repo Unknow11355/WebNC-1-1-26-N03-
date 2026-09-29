@@ -30,8 +30,8 @@ export function createCartService({ cartRepository, userRepository }) {
   return {
     async create(auth) {
       const userId = parseUserId(auth);
-
       const user = await userRepository.findById(userId);
+
       if (!user || user.status !== 'active') {
         throw new AppError(403, 'FORBIDDEN', 'Tài khoản không được phép thực hiện thao tác này');
       }
@@ -51,12 +51,13 @@ export function createCartService({ cartRepository, userRepository }) {
     async getById(auth, rawCartId) {
       const userId = parseUserId(auth);
       const cartId = parseCartId(rawCartId);
-
       const cart = await cartRepository.findById(cartId);
+
       if (!cart) {
         throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy giỏ hàng');
       }
 
+      // Ownership nằm ở service; role middleware không thay thế được kiểm tra này.
       if (Number(cart.user_id) !== userId) {
         throw new AppError(403, 'FORBIDDEN', 'Bạn không có quyền truy cập giỏ hàng này');
       }
