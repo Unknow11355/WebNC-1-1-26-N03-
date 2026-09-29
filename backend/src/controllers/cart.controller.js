@@ -1,5 +1,7 @@
-// Tầng HTTP: nhận danh tính đã xác thực và tham số route, gọi service.
+// Controller chỉ lấy identity đã xác thực và params HTTP rồi gọi service.
 export function createCartController(service) {
+  if (!service) throw new TypeError('Cart controller requires service');
+
   return {
     async create(req, res) {
       const data = await service.create(req.auth);

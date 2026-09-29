@@ -1,4 +1,4 @@
-// Tầng truy cập dữ liệu: chỉ SQL tham số hóa, không nhận req/res.
+// Repository chỉ truy cập dữ liệu bằng SQL tham số hóa.
 export function createCartRepository(db) {
   if (!db) throw new TypeError('Cart repository requires a database executor');
 
