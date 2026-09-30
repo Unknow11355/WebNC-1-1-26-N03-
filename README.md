@@ -5,6 +5,10 @@
 | :--- | :--- | :--- | :--- |
 | Trần Hữu Kiên | Windows 11 | VS Code |
 
+## Kế hoạch Buổi 5
+
+Đọc [Checklist trước khi code và phân công Buổi 5](docs/checklistbuoi5.md). Phân công hiện tại: **Linh V1, Vinh V2–V3, Kiên V4–V5**. Luồng nghiệp vụ bám source tham khảo, các sửa đổi để tránh sai dữ liệu được nêu rõ trong checklist. Nhánh chuẩn bị: `Linh/v1/buoi5`; checklist Buổi 4 bên dưới được giữ làm lịch sử, không áp dụng phân công cũ cho Buổi 5.
+
 ## Khung backend ba tầng
 
 Đề tài: Hệ thống quản lý vận hành siêu thị. Phần V1 dựng khung Node.js + Express + MySQL để nhóm phát triển theo tiến trình thực hành. Nhánh `Linh/v1/buoi4` chứa phần kiến trúc và quy tắc code của Buổi 4.
