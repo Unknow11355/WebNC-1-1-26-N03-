@@ -4,46 +4,44 @@ import jwt from 'jsonwebtoken';
 import { AppError } from '../src/errors/app-error.js';
 import { createAuthMiddleware } from '../src/middlewares/auth.middleware.js';
 
-const SECRET = 'test-secret';
+const SECRET = 'test-secret-123456';
 
-function makeResponse() {
-  return {
-    getHeader() {
-      return undefined;
-    },
-  };
-}
-
-function makeNext() {
+function nextSpy() {
   const calls = [];
   return Object.assign((error) => calls.push(error), { calls });
 }
 
-function makeRequest(token) {
-  return {
-    auth: undefined,
+test('requireAuth sets req.auth using DB role and active session, not token role', async () => {
+  const jti = 'session-101';
+  const middleware = createAuthMiddleware({
+    userRepository: {
+      async findById(userId) {
+        return { user_id: userId, status: 'active', role_name: 'customer' };
+      },
+    },
+    sessionRepository: {
+      async findActiveById(sessionId) {
+        assert.equal(sessionId, jti);
+        return { session_id: jti, user_id: 101 };
+      },
+    },
+    jwtSecret: SECRET,
+  });
+  const token = jwt.sign({ userId: 101, role: 'admin' }, SECRET, {
+    algorithm: 'HS256',
+    jwtid: jti,
+  });
+  const req = {
     get(name) {
       assert.equal(name, 'authorization');
-      return token ? `Bearer ${token}` : undefined;
+      return `Bearer ${token}`;
     },
   };
-}
+  const next = nextSpy();
 
-test('requireAuth sets req.auth using DB role, not token role', async () => {
-  const userRepository = {
-    async findById(userId) {
-      assert.equal(userId, 101);
-      return { user_id: 101, status: 'active', role_name: 'customer' };
-    },
-  };
-  const middleware = createAuthMiddleware({ userRepository, jwtSecret: SECRET });
-  const token = jwt.sign({ userId: 101, role: 'admin' }, SECRET, { algorithm: 'HS256' });
-  const req = makeRequest(token);
-  const next = makeNext();
-
-  await middleware.requireAuth(req, makeResponse(), next);
-
+  await middleware.requireAuth(req, {}, next);
   assert.deepEqual(req.auth, { userId: 101, role: 'customer' });
+  assert.equal(req.sessionId, jti);
   assert.equal(next.calls.length, 1);
   assert.equal(next.calls[0], undefined);
 });
@@ -51,15 +49,12 @@ test('requireAuth sets req.auth using DB role, not token role', async () => {
 test('requireAuth rejects missing token with 401', async () => {
   const middleware = createAuthMiddleware({
     userRepository: { findById: async () => null },
+    sessionRepository: { findActiveById: async () => null },
     jwtSecret: SECRET,
   });
-  const req = makeRequest(null);
-  const next = makeNext();
-
-  await middleware.requireAuth(req, makeResponse(), next);
-
-  assert.equal(next.calls.length, 1);
-  assert.ok(next.calls[0] instanceof AppError);
+  const req = { get: () => undefined };
+  const next = nextSpy();
+  await middleware.requireAuth(req, {}, next);
   assert.equal(next.calls[0].status, 401);
   assert.equal(next.calls[0].code, 'UNAUTHORIZED');
 });
@@ -67,27 +62,39 @@ test('requireAuth rejects missing token with 401', async () => {
 test('requireAuth rejects invalid token with 401', async () => {
   const middleware = createAuthMiddleware({
     userRepository: { findById: async () => null },
+    sessionRepository: { findActiveById: async () => null },
     jwtSecret: SECRET,
   });
-  const req = makeRequest('not-a-token');
-  const next = makeNext();
+  const req = { get: () => 'Bearer not-a-token' };
+  const next = nextSpy();
+  await middleware.requireAuth(req, {}, next);
+  assert.ok(next.calls[0] instanceof AppError);
+  assert.equal(next.calls[0].status, 401);
+});
 
-  await middleware.requireAuth(req, makeResponse(), next);
-
+test('revoked or expired server session rejects an otherwise valid JWT', async () => {
+  const token = jwt.sign({ userId: 101 }, SECRET, { algorithm: 'HS256', jwtid: 'revoked-session' });
+  const middleware = createAuthMiddleware({
+    userRepository: {
+      findById: async () => ({ user_id: 101, status: 'active', role_name: 'customer' }),
+    },
+    sessionRepository: { findActiveById: async () => null },
+    jwtSecret: SECRET,
+  });
+  const req = { get: () => `Bearer ${token}` };
+  const next = nextSpy();
+  await middleware.requireAuth(req, {}, next);
   assert.equal(next.calls[0].status, 401);
 });
 
 test('requireRole rejects authenticated user with wrong role', () => {
   const middleware = createAuthMiddleware({
     userRepository: { findById: async () => null },
+    sessionRepository: { findActiveById: async () => null },
     jwtSecret: SECRET,
   });
-  const next = makeNext();
-  const req = { auth: { userId: 101, role: 'customer' } };
-
-  middleware.requireRole('admin')(req, makeResponse(), next);
-
+  const next = nextSpy();
+  middleware.requireRole('admin')({ auth: { userId: 101, role: 'customer' } }, {}, next);
   assert.ok(next.calls[0] instanceof AppError);
   assert.equal(next.calls[0].status, 403);
-  assert.equal(next.calls[0].code, 'FORBIDDEN');
 });

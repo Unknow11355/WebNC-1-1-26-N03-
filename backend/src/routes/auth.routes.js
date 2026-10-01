@@ -1,25 +1,17 @@
 import { Router } from 'express';
-import jwt from 'jsonwebtoken';
+import { createAuthController } from '../controllers/auth.controller.js';
 
-export function createAuthRoutes() {
+export function createAuthRoutes({ service, requireAuth, requireRole }) {
+  if (!service || typeof requireAuth !== 'function' || typeof requireRole !== 'function') {
+    throw new TypeError('Auth routes require service and auth middleware');
+  }
+
   const router = Router();
-
-  router.post('/login', (req, res) => {
-    const { email } = req.body;
-    // Cấp một accessToken mẫu hợp lệ cho tài khoản test
-    const accessToken = jwt.sign(
-      { userId: 3, email: email || 'customer.a@mini.local', role: 'customer' },
-      process.env.JWT_SECRET || 'super_secret_key_demo',
-      { expiresIn: '1h' },
-    );
-    return res.json({
-      success: true,
-      data: {
-        accessToken,
-        user: { email: email || 'customer.a@mini.local', role: 'customer' },
-      },
-    });
-  });
-
+  const controller = createAuthController(service);
+  router.post('/register', controller.register);
+  router.post('/login', controller.login);
+  router.post('/logout', requireAuth, controller.logout);
+  router.get('/me', requireAuth, controller.me);
+  router.get('/users', requireAuth, requireRole('admin'), controller.listUsers);
   return router;
 }
