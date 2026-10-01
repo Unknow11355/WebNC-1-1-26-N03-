@@ -17,6 +17,7 @@ export const env = {
     password: process.env.DB_PASSWORD ?? '',
     database: process.env.DB_NAME ?? 'mini_supermarket',
   },
+  jwtSecret: process.env.JWT_SECRET ?? '',
   corsOrigins: (process.env.CORS_ORIGINS ?? 'http://localhost:5173')
     .split(',')
     .map((value) => value.trim())
