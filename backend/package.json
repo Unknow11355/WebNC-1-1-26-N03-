@@ -13,9 +13,11 @@
     "lint": "eslint .",
     "format": "prettier --write \"src/**/*.js\" \"test/**/*.js\" eslint.config.js package.json .prettierrc.json",
     "format:check": "prettier --check \"src/**/*.js\" \"test/**/*.js\" eslint.config.js package.json .prettierrc.json",
-    "check": "npm run lint && npm run format:check && npm test"
+    "check": "npm run lint && npm run format:check && npm test",
+    "measure:indexes": "node scripts/measure-buoi5-indexes.js"
   },
   "dependencies": {
+    "bcryptjs": "3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^18.0.3",
     "express": "^5.2.1",
