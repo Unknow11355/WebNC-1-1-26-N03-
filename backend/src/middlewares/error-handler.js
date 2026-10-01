@@ -1,9 +1,7 @@
 import { normalizeError } from '../errors/normalize-error.js';
-
 export function errorHandler(error, req, res, next) {
   if (res.headersSent) return next(error);
   const normalized = normalizeError(error);
-  // Không serialize lỗi gốc vì có thể chứa SQL, mật khẩu hoặc token.
   const event = {
     event: 'request_failed',
     traceId: req.traceId,
