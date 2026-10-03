@@ -5,6 +5,7 @@ import { createCartRoutes } from './cart.routes.js';
 import { createCategoryRoutes } from './category.routes.js';
 import { createInventoryRoutes } from './inventory.routes.js';
 import { createOrderRoutes } from './order.routes.js';
+import { createPosRoutes } from './pos.routes.js';
 import { createUserRoutes } from './user.routes.js';
 import { createVoucherRoutes } from './voucher.routes.js';
 
@@ -19,6 +20,7 @@ export function createRoutes({
   categoryService,
   inventoryService,
   orderService,
+  posService,
   userService,
   voucherService,
   requireAuth,
@@ -33,7 +35,6 @@ export function createRoutes({
   router.get('/products', products.list);
   router.get('/products/:productId', products.getById);
 
-  // Các module Buổi 5 chỉ được mount khi đã nhận đủ dependency tích hợp.
   if (authService && hasAuth(requireAuth, requireRole)) {
     router.use('/auth', createAuthRoutes({ service: authService, requireAuth, requireRole }));
   }
@@ -64,6 +65,10 @@ export function createRoutes({
     router.use('/orders', createOrderRoutes({ service: orderService, requireAuth, requireRole }));
   }
 
+  if (posService && hasAuth(requireAuth, requireRole)) {
+    router.use('/pos', createPosRoutes({ service: posService, requireAuth, requireRole }));
+  }
+
   if (voucherService && hasAuth(requireAuth, requireRole)) {
     router.use(
       '/vouchers',
@@ -71,7 +76,6 @@ export function createRoutes({
     );
   }
 
-  // Product mutations are enabled in the integrated Buổi 5 server.
   if (hasAuth(requireAuth, requireRole)) {
     router.post('/products', requireAuth, requireRole('admin'), products.create);
     router.patch('/products/:productId', requireAuth, requireRole('admin'), products.update);

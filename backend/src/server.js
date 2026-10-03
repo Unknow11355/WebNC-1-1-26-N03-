@@ -7,6 +7,7 @@ import { createCartRepository } from './repositories/cart.repository.js';
 import { createCategoryRepository } from './repositories/category.repository.js';
 import { createInventoryRepository } from './repositories/inventory.repository.js';
 import { createOrderRepository } from './repositories/order.repository.js';
+import { createPosRepository } from './repositories/pos.repository.js';
 import { createProductRepository } from './repositories/product.repository.js';
 import { createSessionRepository } from './repositories/session.repository.js';
 import { createUserRepository } from './repositories/user.repository.js';
@@ -16,6 +17,7 @@ import { createCartService } from './services/cart.service.js';
 import { createCategoryService } from './services/category.service.js';
 import { createInventoryService } from './services/inventory.service.js';
 import { createOrderService } from './services/order.service.js';
+import { createPosService } from './services/pos.service.js';
 import { createUserService } from './services/user.service.js';
 import { createVoucherService } from './services/voucher.service.js';
 
@@ -31,6 +33,7 @@ const categoryRepository = createCategoryRepository(pool);
 const inventoryRepository = createInventoryRepository(pool);
 const voucherRepository = createVoucherRepository(pool);
 const orderRepository = createOrderRepository(pool);
+const posRepository = createPosRepository(pool);
 
 const authService = createAuthService({
   userRepository,
@@ -47,6 +50,7 @@ const inventoryService = createInventoryService({
 });
 const voucherService = createVoucherService(voucherRepository);
 const orderService = createOrderService({ orderRepository, voucherRepository, transactionManager });
+const posService = createPosService({ repository: posRepository, transactionManager });
 const { requireAuth, requireRole } = createAuthMiddleware({
   userRepository,
   sessionRepository,
@@ -60,6 +64,7 @@ const app = createApp({
   categoryService,
   inventoryService,
   orderService,
+  posService,
   userService,
   voucherService,
   requireAuth,
