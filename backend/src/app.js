@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import cors from 'cors';
 import express from 'express';
-import { createProductService } from './services/product.service.js';
 import { AppError } from './errors/app-error.js';
 import { errorHandler } from './middlewares/error-handler.js';
 import { createRoutes } from './routes/index.js';
+import { createProductService } from './services/product.service.js';
 
 export function createApp({
   productRepository,
@@ -13,6 +13,7 @@ export function createApp({
   categoryService,
   inventoryService,
   orderService,
+  posService,
   userService,
   voucherService,
   requireAuth,
@@ -38,6 +39,7 @@ export function createApp({
       categoryService,
       inventoryService,
       orderService,
+      posService,
       userService,
       voucherService,
       requireAuth,
