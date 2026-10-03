@@ -1,0 +1,602 @@
+[
+  {
+    "idempotency_key": "B6-50-01",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-02",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-03",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-04",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-05",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-06",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-07",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-08",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-09",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-10",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-11",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-12",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-13",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-14",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-15",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-16",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-17",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-18",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-19",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-20",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-21",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-22",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-23",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-24",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-25",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-26",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-27",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-28",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-29",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-30",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-31",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-32",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-33",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-34",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-35",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-36",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-37",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-38",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-39",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-40",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-41",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-42",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-43",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-44",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-45",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-46",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-47",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-48",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-49",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  },
+  {
+    "idempotency_key": "B6-50-50",
+    "body": {
+      "items": [
+        {
+          "product_id": "REPLACE_WITH_B6_POS_001_ID",
+          "quantity": 1
+        }
+      ],
+      "payment_method": "cash"
+    }
+  }
+]
