@@ -10,6 +10,7 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "test": "node --test",
+    "test:buoi5:db": "node --test scripts/buoi5-integration.js",
     "lint": "eslint .",
     "format": "prettier --write \"src/**/*.js\" \"test/**/*.js\" eslint.config.js package.json .prettierrc.json",
     "format:check": "prettier --check \"src/**/*.js\" \"test/**/*.js\" eslint.config.js package.json .prettierrc.json",
