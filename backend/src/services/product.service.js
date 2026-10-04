@@ -40,6 +40,7 @@ function normalizeInput(input, current = null) {
     throw new AppError(400, 'VALIDATION_ERROR', 'min_stock phải là số nguyên');
   return {
     productName,
+    stock: 0,
     barcode,
     unit,
     price,

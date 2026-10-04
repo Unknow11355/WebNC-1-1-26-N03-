@@ -2,6 +2,31 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createInventoryService } from '../src/services/inventory.service.js';
 
+test('inventory adjustment rejects empty and non-numeric types before transaction', async () => {
+  const service = createInventoryService({
+    repository: {},
+    productRepository: {},
+    transactionManager: {
+      run() {
+        assert.fail('Invalid input must not start transaction');
+      },
+    },
+  });
+  for (const actual_quantity of [null, '', ' ', false, true, [], {}, -1, 1.5]) {
+    await assert.rejects(
+      service.adjust(
+        { userId: 9 },
+        {
+          inventory_item_id: 1,
+          actual_quantity,
+          note: 'Check',
+        },
+      ),
+      (error) => error.status === 400,
+    );
+  }
+});
+
 test('inventory import keeps stock update and log in one transaction', async () => {
   const calls = [];
   const service = createInventoryService({
@@ -23,8 +48,8 @@ test('inventory import keeps stock update and log in one transaction', async () 
           status: 'available',
         };
       },
-      async increaseStock(id, quantity, connection) {
-        calls.push(['increase', id, quantity, connection.tag]);
+      async increaseStock(id, quantity, importPrice, connection) {
+        calls.push(['increase', id, quantity, importPrice, connection.tag]);
       },
       async addLog(data, connection) {
         calls.push(['log', data.employeeId, data.action, data.quantity, connection.tag]);
@@ -42,7 +67,7 @@ test('inventory import keeps stock update and log in one transaction', async () 
   assert.equal(result.stock, 15);
   assert.deepEqual(calls, [
     'begin',
-    ['increase', 1, 10, 'connection'],
+    ['increase', 1, 10, 12000, 'connection'],
     ['log', 9, 'import', 10, 'connection'],
     'commit',
   ]);
