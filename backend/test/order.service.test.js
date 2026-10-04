@@ -17,6 +17,9 @@ test('checkout uses database prices and a single transaction', async () => {
       },
     },
     orderRepository: {
+      async findCartByCustomerForUpdate() {
+        return { cart_id: 8, user_id: 10 };
+      },
       async getCartItemsForUpdate() {
         return [
           {
@@ -34,6 +37,7 @@ test('checkout uses database prices and a single transaction', async () => {
         return { order_id: 99, ...data, final_amount: data.finalAmount };
       },
       async createOrderItem(data) {
+        assert.equal(data.productId, 2);
         calls.push(['item', data.subtotal]);
       },
       async decrementProductStock(productId, quantity) {
