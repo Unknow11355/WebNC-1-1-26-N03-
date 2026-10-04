@@ -1,5 +1,9 @@
 # WebNC-1-1-26-N03-
 
+## Buổi 7 — Phân công hiện tại
+
+**Linh V1, Vinh V2/V3, Kiên V4/V5.** Bắt đầu tại [Checklist Buổi 7](docs/checklistbuoi7.md), [bảng đối chiếu 10 khối](docs/buoi7-v1-doichieu.md) và [hợp đồng triển khai](docs/buoi7-v1-hopdong.md). Nhánh tài liệu `Linh/v1/buoi7` kế thừa Buổi 6 đã tích hợp `tichhopLinhcheckvasualai`. Tài liệu là bàn giao V1, không xác nhận chức năng Buổi 7 đã được triển khai/nghiệm thu. Các mục Buổi 4–6 bên dưới giữ làm lịch sử.
+
 ## Bảng phiên bản chuẩn của nhóm
 | Thành viên | Hệ điều hành | Trình soạn thảo | Công cụ nền tảng |
 | :--- | :--- | :--- | :--- |
