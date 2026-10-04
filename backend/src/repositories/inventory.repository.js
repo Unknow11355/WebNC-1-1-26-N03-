@@ -80,10 +80,10 @@ export function createInventoryRepository(db) {
       );
       return this.findById(id, executor);
     },
-    async increaseStock(id, quantity, executor = db) {
+    async increaseStock(id, quantity, importPrice, executor = db) {
       await executor.execute(
-        `UPDATE inventory_items SET stock = stock + ? WHERE inventory_item_id = ?`,
-        [quantity, id],
+        `UPDATE inventory_items SET stock = stock + ?, import_price = ? WHERE inventory_item_id = ?`,
+        [quantity, importPrice, id],
       );
     },
     async decreaseStock(id, quantity, executor = db) {

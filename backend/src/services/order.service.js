@@ -84,11 +84,7 @@ export function createOrderService({ orderRepository, voucherRepository, transac
         );
 
       return transactionManager.run(async (connection) => {
-        const [carts] = await connection.execute(
-          `SELECT cart_id, user_id FROM carts WHERE user_id = ? LIMIT 1 FOR UPDATE`,
-          [customerId],
-        );
-        const cart = carts[0] ?? null;
+        const cart = await orderRepository.findCartByCustomerForUpdate(customerId, connection);
         if (!cart) throw new AppError(400, 'VALIDATION_ERROR', 'Giỏ hàng đang trống');
         const items = await orderRepository.getCartItemsForUpdate(cart.cart_id, connection);
         if (!items.length) throw new AppError(400, 'VALIDATION_ERROR', 'Giỏ hàng đang trống');
@@ -131,7 +127,16 @@ export function createOrderService({ orderRepository, voucherRepository, transac
         );
 
         for (const item of normalizedItems) {
-          await orderRepository.createOrderItem({ orderId: order.order_id, ...item }, connection);
+          await orderRepository.createOrderItem(
+            {
+              orderId: order.order_id,
+              productId: item.product_id,
+              quantity: item.quantity,
+              price: item.price,
+              subtotal: item.subtotal,
+            },
+            connection,
+          );
           await orderRepository.decrementProductStock(item.product_id, item.quantity, connection);
         }
         await orderRepository.createPayment(

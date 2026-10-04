@@ -2,6 +2,13 @@ export function createOrderRepository(db) {
   if (!db) throw new TypeError('Order repository requires a database executor');
 
   return {
+    async findCartByCustomerForUpdate(customerId, executor = db) {
+      const [rows] = await executor.execute(
+        `SELECT cart_id, user_id FROM carts WHERE user_id = ? LIMIT 1 FOR UPDATE`,
+        [customerId],
+      );
+      return rows[0] ?? null;
+    },
     async findById(orderId, executor = db, lock = false) {
       const [rows] = await executor.execute(
         `SELECT order_id, customer_id, employee_id, shift_id, voucher_id,

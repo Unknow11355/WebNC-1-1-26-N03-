@@ -10,9 +10,11 @@ function id(value, field) {
 function positive(value, field, allowZero = false, integer = false) {
   const parsed = Number(value);
   if (
+    !['number', 'string'].includes(typeof value) ||
+    (typeof value === 'string' && value.trim() === '') ||
     !Number.isFinite(parsed) ||
     (allowZero ? parsed < 0 : parsed <= 0) ||
-    (integer && !Number.isInteger(parsed))
+    (integer && !Number.isSafeInteger(parsed))
   ) {
     throw new AppError(400, 'VALIDATION_ERROR', `${field} không hợp lệ`);
   }
@@ -152,7 +154,7 @@ export function createInventoryService({ repository, productRepository, transact
           throw new AppError(409, 'CONFLICT', 'Mặt hàng kho đã ngừng hoạt động');
         if (importPrice > item.price)
           throw new AppError(400, 'VALIDATION_ERROR', 'Giá bán không được nhỏ hơn giá nhập');
-        await repository.increaseStock(inventoryId, quantity, connection);
+        await repository.increaseStock(inventoryId, quantity, importPrice, connection);
         await repository.addLog(
           {
             inventoryItemId: inventoryId,

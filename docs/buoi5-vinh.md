@@ -37,5 +37,5 @@
 
 ## Kiểm tra local
 - `node --check` cho toàn bộ JS trong `src` và `test`: PASS.
-- Chưa chạy `npm test` / `npm run check` vì gói dependency chưa được cài và môi trường này không có MySQL test server.
+- Cập nhật sau Linh rà soát: `npm run check` đạt (36 test); `npm run test:buoi5:db` đạt 12 ca nghiệp vụ trên database local tạm (13 tests tính cả test cha). Chi tiết và giới hạn kiểm chứng tại [Linhcheckvasualai.md](Linhcheckvasualai.md).
 - Chưa ghi số P50 giả; nhóm cần chạy benchmark trên MySQL test thật.
