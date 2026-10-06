@@ -6,6 +6,7 @@ import {
   cartTotal,
   labels,
 } from "./core.js";
+import { barcodeView, scheduleView, stopScanner } from "./staff-tools.js";
 const $ = (s) => document.querySelector(s);
 const state = {
   token: sessionStorage.getItem("token") || "",
@@ -99,6 +100,8 @@ function shell() {
       ["orders", "Quản lý đơn hàng"],
       ["inventory", "Quản lý kho"],
       ["logs", "Lịch sử kho"],
+      ["barcode", "Mã vạch"],
+      ["schedule", "Lịch nhân viên"],
     );
   if (isAdmin())
     links.push(
@@ -204,6 +207,7 @@ function categoryOptions() {
   ];
 }
 async function render() {
+  stopScanner();
   const version = ++renderVersion;
   const current = route();
   const allowed = shell();
@@ -218,7 +222,14 @@ async function render() {
   try {
     let html = "",
       after = () => {};
-    if (current === "login" || current === "register") {
+    if (current === "barcode" || current === "schedule") {
+      const view =
+        current === "barcode"
+          ? barcodeView({ api, toast })
+          : scheduleView({ api, user: state.user, toast });
+      html = view.html;
+      after = view.after;
+    } else if (current === "login" || current === "register") {
       const register = current === "register";
       html = `<div class="auth panel">${title(register ? "Tạo tài khoản" : "Chào mừng trở lại", "Đăng nhập để tiếp tục mua sắm và quản lý siêu thị.")}${form((register ? field("full_name", "Họ và tên") : "") + field("email", "Email", "email") + field("password", "Mật khẩu", "password") + (register ? field("phone", "Số điện thoại", "tel", "", null, false) + field("address", "Địa chỉ", "text", "", null, false) : ""), register ? "Đăng ký" : "Đăng nhập")}<p class="muted">${register ? 'Đã có tài khoản? <a href="#login">Đăng nhập</a>' : 'Chưa có tài khoản? <a href="#register">Đăng ký</a>'}</p><p class="note">Khôi phục mật khẩu chưa được backend hiện tại hỗ trợ.</p></div>`;
       after = () =>
@@ -369,7 +380,14 @@ async function render() {
       const u = (await api("/auth/me")).data;
       html =
         title("Tài khoản", "Thông tin tài khoản hiện tại.") +
-        `<section class="panel stack"><h2>${e(u.full_name)}</h2><p>${e(u.email)}</p><p>Điện thoại: ${e(u.phone || "Chưa cập nhật")}</p><p>Địa chỉ: ${e(u.address || "Chưa cập nhật")}</p><div>${badge(u.role_name)} ${badge(u.status)}</div><p class="note">Chỉnh sửa hồ sơ cá nhân và đổi mật khẩu chưa có API tương ứng.</p></section>`;
+        `<section class="panel stack"><h2>${e(u.full_name)}</h2><p>Email đăng nhập: ${e(u.email)}</p><div>${badge(u.role_name)} ${badge(u.status)}</div>${form(field("full_name", "Họ và tên", "text", u.full_name) + field("phone", "Số điện thoại", "tel", u.phone || "", null, false) + field("address", "Địa chỉ", "text", u.address || "", null, false), "Lưu hồ sơ")}<p class="muted">Điện thoại: 8–15 chữ số, có thể bắt đầu bằng +. Để trống điện thoại/địa chỉ để xóa thông tin đó.</p><p class="note">Email và vai trò không thay đổi tại đây. Chức năng đổi mật khẩu chưa được triển khai.</p></section>`;
+      after = () =>
+        wireForm($("#main"), async (data) => {
+          const result = await api("/auth/me", { method: "PATCH", body: data });
+          state.user = result.data;
+          toast("Đã cập nhật hồ sơ");
+          await render();
+        });
     } else {
       const config = resources[current];
       const [r, categories] = await Promise.all([

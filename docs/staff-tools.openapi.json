@@ -1,0 +1,326 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "CN03 và CN08 - Mã vạch, lịch nhân viên (bổ sung)",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "/api/v1"
+    }
+  ],
+  "paths": {
+    "/products/scan/{code}": {
+      "get": {
+        "summary": "Employee/admin: tra kệ trước, kho sau",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Thành công; JSON {success:true,data:...}"
+          },
+          "400": {
+            "description": "Dữ liệu không hợp lệ"
+          },
+          "401": {
+            "description": "Thiếu hoặc sai phiên"
+          },
+          "403": {
+            "description": "Không đúng vai trò/chủ sở hữu"
+          },
+          "404": {
+            "description": "Không tìm thấy đối tượng đang hoạt động"
+          }
+        }
+      }
+    },
+    "/products/check-code/{code}": {
+      "get": {
+        "summary": "Employee/admin: kiểm mã trong cả hai bảng, gồm inactive",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Thành công; JSON {success:true,data:...}"
+          },
+          "400": {
+            "description": "Dữ liệu không hợp lệ"
+          },
+          "401": {
+            "description": "Thiếu hoặc sai phiên"
+          },
+          "403": {
+            "description": "Không đúng vai trò/chủ sở hữu"
+          },
+          "404": {
+            "description": "Không tìm thấy đối tượng đang hoạt động"
+          }
+        }
+      }
+    },
+    "/products/generate-code": {
+      "post": {
+        "summary": "Employee/admin: sinh mã nội bộ, không giữ chỗ",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "prefix": {
+                    "type": "string",
+                    "description": "Chuẩn hóa chữ A-Z tối đa 8 ký tự; mặc định SP"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Thành công; JSON {success:true,data:...}"
+          },
+          "400": {
+            "description": "Dữ liệu không hợp lệ"
+          },
+          "401": {
+            "description": "Thiếu hoặc sai phiên"
+          },
+          "403": {
+            "description": "Không đúng vai trò/chủ sở hữu"
+          },
+          "404": {
+            "description": "Không tìm thấy đối tượng đang hoạt động"
+          }
+        }
+      }
+    },
+    "/employee-schedules/overview/month": {
+      "get": {
+        "summary": "Admin: danh sách nhân viên active và số ngày nghỉ/chặn",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "year",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 2000,
+              "maximum": 2100
+            }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 12
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Thành công; JSON {success:true,data:...}"
+          },
+          "400": {
+            "description": "Dữ liệu không hợp lệ"
+          },
+          "401": {
+            "description": "Thiếu hoặc sai phiên"
+          },
+          "403": {
+            "description": "Không đúng vai trò/chủ sở hữu"
+          },
+          "404": {
+            "description": "Không tìm thấy đối tượng đang hoạt động"
+          }
+        }
+      }
+    },
+    "/employee-schedules/employee/{employeeId}/month": {
+      "get": {
+        "summary": "Admin hoặc đúng nhân viên: lịch tháng",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "employeeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 2000,
+              "maximum": 2100
+            }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 12
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Thành công; JSON {success:true,data:...}"
+          },
+          "400": {
+            "description": "Dữ liệu không hợp lệ"
+          },
+          "401": {
+            "description": "Thiếu hoặc sai phiên"
+          },
+          "403": {
+            "description": "Không đúng vai trò/chủ sở hữu"
+          },
+          "404": {
+            "description": "Không tìm thấy đối tượng đang hoạt động"
+          }
+        }
+      }
+    },
+    "/employee-schedules/employee/{employeeId}/day": {
+      "put": {
+        "summary": "Admin: cập nhật ngày hoặc clear để về mặc định",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "employeeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "work_date",
+                  "day_status"
+                ],
+                "properties": {
+                  "work_date": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "day_status": {
+                    "type": "string",
+                    "enum": [
+                      "leave",
+                      "sick",
+                      "blocked",
+                      "clear",
+                      "scheduled"
+                    ]
+                  },
+                  "note": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Thành công; JSON {success:true,data:...}"
+          },
+          "400": {
+            "description": "Dữ liệu không hợp lệ"
+          },
+          "401": {
+            "description": "Thiếu hoặc sai phiên"
+          },
+          "403": {
+            "description": "Không đúng vai trò/chủ sở hữu"
+          },
+          "404": {
+            "description": "Không tìm thấy đối tượng đang hoạt động"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}
