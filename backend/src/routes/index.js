@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { createStaffToolsRoutes } from './staff-tools.routes.js';
 import { createProductController } from '../controllers/product.controller.js';
 import { createAuthRoutes } from './auth.routes.js';
 import { createCartRoutes } from './cart.routes.js';
@@ -23,12 +24,19 @@ export function createRoutes({
   posService,
   userService,
   voucherService,
+  barcodeService,
+  scheduleService,
   requireAuth,
   requireRole,
 } = {}) {
   if (!productService) throw new TypeError('Routes require productService');
 
   const router = Router();
+  if (barcodeService && scheduleService && hasAuth(requireAuth, requireRole)) {
+    router.use(
+      createStaffToolsRoutes({ barcodeService, scheduleService, requireAuth, requireRole }),
+    );
+  }
   const products = createProductController(productService);
 
   router.get('/health', (req, res) => res.json({ success: true, data: { status: 'ok' } }));

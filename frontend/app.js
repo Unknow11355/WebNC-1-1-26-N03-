@@ -6,6 +6,7 @@ import {
   cartTotal,
   labels,
 } from "./core.js";
+import { barcodeView, scheduleView, stopScanner } from "./staff-tools.js";
 const $ = (s) => document.querySelector(s);
 const state = {
   token: sessionStorage.getItem("token") || "",
@@ -99,6 +100,8 @@ function shell() {
       ["orders", "Quản lý đơn hàng"],
       ["inventory", "Quản lý kho"],
       ["logs", "Lịch sử kho"],
+      ["barcode", "Mã vạch"],
+      ["schedule", "Lịch nhân viên"],
     );
   if (isAdmin())
     links.push(
@@ -204,6 +207,7 @@ function categoryOptions() {
   ];
 }
 async function render() {
+  stopScanner();
   const version = ++renderVersion;
   const current = route();
   const allowed = shell();
@@ -218,7 +222,14 @@ async function render() {
   try {
     let html = "",
       after = () => {};
-    if (current === "login" || current === "register") {
+    if (current === "barcode" || current === "schedule") {
+      const view =
+        current === "barcode"
+          ? barcodeView({ api, toast })
+          : scheduleView({ api, user: state.user, toast });
+      html = view.html;
+      after = view.after;
+    } else if (current === "login" || current === "register") {
       const register = current === "register";
       html = `<div class="auth panel">${title(register ? "Tạo tài khoản" : "Chào mừng trở lại", "Đăng nhập để tiếp tục mua sắm và quản lý siêu thị.")}${form((register ? field("full_name", "Họ và tên") : "") + field("email", "Email", "email") + field("password", "Mật khẩu", "password") + (register ? field("phone", "Số điện thoại", "tel", "", null, false) + field("address", "Địa chỉ", "text", "", null, false) : ""), register ? "Đăng ký" : "Đăng nhập")}<p class="muted">${register ? 'Đã có tài khoản? <a href="#login">Đăng nhập</a>' : 'Chưa có tài khoản? <a href="#register">Đăng ký</a>'}</p><p class="note">Khôi phục mật khẩu chưa được backend hiện tại hỗ trợ.</p></div>`;
       after = () =>
