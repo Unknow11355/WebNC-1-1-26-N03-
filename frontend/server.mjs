@@ -6,6 +6,7 @@ const files = new Map([
   ["/", ["index.html", "text/html"]],
   ["/app.js", ["app.js", "text/javascript"]],
   ["/core.js", ["core.js", "text/javascript"]],
+  ["/staff-tools.js", ["staff-tools.js", "text/javascript"]],
   ["/style.css", ["style.css", "text/css"]],
 ]);
 for (const name of await readdir(
