@@ -157,6 +157,54 @@ try {
   results.push("Search by product name");
   await page.screenshot({ path: join(output, "desktop.png"), fullPage: true });
   await login(page, "customer");
+  await nav(page, "Tài khoản");
+  await page
+    .getByLabel("Họ và tên", { exact: true })
+    .fill("Khách cập nhật hồ sơ");
+  await page.getByLabel("Số điện thoại", { exact: true }).fill("0901234567");
+  await page
+    .getByLabel("Địa chỉ", { exact: true })
+    .fill("Địa chỉ mới kiểm thử");
+  await page.getByRole("button", { name: "Lưu hồ sơ", exact: true }).click();
+  await page
+    .getByRole("heading", { name: "Khách cập nhật hồ sơ", exact: true })
+    .waitFor();
+  await page.reload();
+  await page
+    .getByRole("heading", { name: "Khách cập nhật hồ sơ", exact: true })
+    .waitFor();
+  const profileChecks = await page.evaluate(async () => {
+    const headers = {
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + sessionStorage.getItem("token"),
+    };
+    const forbidden = await fetch("/api/v1/auth/me", {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({
+        user_id: 1,
+        role_name: "admin",
+        full_name: "Hack",
+      }),
+    });
+    const anonymous = await fetch("/api/v1/auth/me", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ full_name: "Hack" }),
+    });
+    return [forbidden.status, anonymous.status];
+  });
+  assert.deepEqual(profileChecks, [400, 401]);
+  const [profileRows] = await connection.query(
+    "SELECT user_id,full_name,role_id FROM users ORDER BY user_id",
+  );
+  assert.equal(profileRows[0].full_name, "admin");
+  assert.equal(profileRows[2].role_id, 3);
+  assert.equal(profileRows[2].full_name, "Khách cập nhật hồ sơ");
+  results.push(
+    "Profile UI persists after reload; identity/role injection 400; anonymous 401; other user unchanged",
+  );
+  await nav(page, "Sản phẩm");
   await page
     .locator(".product")
     .first()
@@ -274,6 +322,97 @@ try {
   });
   admin.on("pageerror", (e) => errors.push(e.message));
   await login(admin, "admin");
+  await nav(admin, "Mã vạch");
+  await admin.getByLabel("Mã cần tra", { exact: true }).fill("UI-1");
+  await admin.getByRole("button", { name: "Tra cứu mã", exact: true }).click();
+  await admin
+    .locator("#scan-result")
+    .getByRole("heading", { name: "Táo đỏ tươi" })
+    .waitFor();
+  await admin
+    .getByRole("button", { name: "Kiểm tra trùng", exact: true })
+    .click();
+  await admin
+    .getByText("Mã đã tồn tại (kể cả hàng ngừng hoạt động).", { exact: true })
+    .waitFor();
+  await admin
+    .getByRole("button", { name: "Tạo mã nội bộ", exact: true })
+    .click();
+  await admin.getByText("Đã tạo mã nội bộ:", { exact: false }).waitFor();
+  assert.match(
+    await admin.getByLabel("Mã cần tra", { exact: true }).inputValue(),
+    /^SP[A-F0-9]{16}$/,
+  );
+  results.push(
+    "Barcode lookup prioritizes product over warehouse; duplicate check; internal code generation",
+  );
+  await nav(admin, "Lịch nhân viên");
+  await admin
+    .locator('select[name="employee"] option[value="2"]')
+    .waitFor({ state: "attached" });
+  await admin.getByLabel("Tháng", { exact: true }).fill("2028-02");
+  await admin.getByLabel("Tháng", { exact: true }).dispatchEvent("change");
+  await admin
+    .locator('select[name="employee"] option[value="2"]')
+    .waitFor({ state: "attached" });
+  await admin.locator('select[name="employee"]').selectOption("2");
+  await admin.getByRole("button", { name: "Xem lịch", exact: true }).click();
+  await admin.locator('[data-date="2028-02-29"]').waitFor();
+  await admin.locator('[data-date="2028-02-10"]').selectOption("sick");
+  await admin.locator('[data-note="2028-02-10"]').fill("Nghỉ ốm kiểm thử");
+  await admin.locator('[data-save-day="2028-02-10"]').click();
+  await admin
+    .getByText("Đã lưu lịch ngày 2028-02-10", { exact: true })
+    .waitFor();
+  const [savedDays] = await connection.query(
+    "SELECT day_status,set_by FROM employee_day_overrides WHERE employee_id=2 AND work_date='2028-02-10'",
+  );
+  assert.equal(savedDays[0].day_status, "sick");
+  assert.equal(savedDays[0].set_by, 1);
+  await admin.screenshot({
+    path: join(output, "schedule-desktop.png"),
+    fullPage: true,
+  });
+  results.push(
+    "Admin calendar leap month + mark sick persisted with authenticated actor",
+  );
+  const access = await employee.evaluate(async () => {
+    const headers = {
+      Authorization: "Bearer " + sessionStorage.getItem("token"),
+      "Content-Type": "application/json",
+    };
+    const base = "/api/v1/employee-schedules/employee/";
+    return await Promise.all([
+      fetch(base + "2/month?year=2028&month=2", { headers }).then(async (r) => [
+        r.status,
+        (await r.json()).data.days.length,
+      ]),
+      fetch(base + "3/month?year=2028&month=2", { headers }).then(
+        (r) => r.status,
+      ),
+      fetch(base + "2/day", {
+        method: "PUT",
+        headers,
+        body: JSON.stringify({ work_date: "2028-02-10", day_status: "clear" }),
+      }).then((r) => r.status),
+    ]);
+  });
+  assert.deepEqual(access, [[200, 29], 403, 403]);
+  await admin.locator('[data-date="2028-02-10"]').selectOption("clear");
+  await admin.locator('[data-save-day="2028-02-10"]').click();
+  await admin
+    .locator("#schedule-status")
+    .filter({ hasText: "0 ngày nghỉ/chặn" })
+    .waitFor();
+  assert.equal(
+    (
+      await connection.query("SELECT COUNT(*) n FROM employee_day_overrides")
+    )[0][0].n,
+    0,
+  );
+  results.push(
+    "Employee self-read, cross-access/write denied; admin clear removes override",
+  );
   for (const name of [
     "Quản lý sản phẩm",
     "Danh mục",

@@ -1,5 +1,9 @@
 # Giao diện web Siêu thị mini
 
+Cập nhật CN03/CN08: đã có menu Mã vạch và Lịch nhân viên cho employee/admin. Xem [hướng dẫn và giới hạn](../docs/mavach-lichnhanvien.md). Ghi chú thiếu hai module ở bản giao diện ban đầu bên dưới được thay bằng trạng thái mới này; bắt đầu/kết thúc ca vẫn chưa nằm trong CN08.
+
+Cập nhật CN02 (06/10/2026): đã có sửa hồ sơ cá nhân (họ tên/điện thoại/địa chỉ) qua `PATCH /auth/me`. Xem [hướng dẫn và kiểm thử CN02](../docs/capnhathoso.md). Các ghi chú “chỉ đọc hồ sơ” bên dưới mô tả bản frontend ban đầu, không còn áp dụng cho CN02.
+
 Nhánh riêng: `Linh/giaodien/chucnanghienco`, nền `Linh/v1/buoi7` (có code Buổi 6 và bản tích hợp `tichhopLinhcheckvasualai`). Không thay nghiệp vụ/backend/database để phục vụ giao diện.
 
 ## Chạy local

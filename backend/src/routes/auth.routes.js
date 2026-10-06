@@ -12,6 +12,7 @@ export function createAuthRoutes({ service, requireAuth, requireRole }) {
   router.post('/login', controller.login);
   router.post('/logout', requireAuth, controller.logout);
   router.get('/me', requireAuth, controller.me);
+  router.patch('/me', requireAuth, controller.updateMe);
   router.get('/users', requireAuth, requireRole('admin'), controller.listUsers);
   return router;
 }

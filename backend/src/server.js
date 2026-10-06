@@ -1,4 +1,8 @@
 import { createApp } from './app.js';
+import { createBarcodeRepository } from './repositories/barcode.repository.js';
+import { createBarcodeService } from './services/barcode.service.js';
+import { createScheduleRepository } from './repositories/schedule.repository.js';
+import { createScheduleService } from './services/schedule.service.js';
 import { env } from './config/env.js';
 import { pool } from './config/database.js';
 import { createTransactionManager } from './config/transaction.js';
@@ -58,6 +62,8 @@ const { requireAuth, requireRole } = createAuthMiddleware({
 });
 
 const app = createApp({
+  barcodeService: createBarcodeService(createBarcodeRepository(pool)),
+  scheduleService: createScheduleService(createScheduleRepository(pool)),
   productRepository,
   cartService,
   authService,
