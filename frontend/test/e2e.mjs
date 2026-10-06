@@ -157,6 +157,54 @@ try {
   results.push("Search by product name");
   await page.screenshot({ path: join(output, "desktop.png"), fullPage: true });
   await login(page, "customer");
+  await nav(page, "Tài khoản");
+  await page
+    .getByLabel("Họ và tên", { exact: true })
+    .fill("Khách cập nhật hồ sơ");
+  await page.getByLabel("Số điện thoại", { exact: true }).fill("0901234567");
+  await page
+    .getByLabel("Địa chỉ", { exact: true })
+    .fill("Địa chỉ mới kiểm thử");
+  await page.getByRole("button", { name: "Lưu hồ sơ", exact: true }).click();
+  await page
+    .getByRole("heading", { name: "Khách cập nhật hồ sơ", exact: true })
+    .waitFor();
+  await page.reload();
+  await page
+    .getByRole("heading", { name: "Khách cập nhật hồ sơ", exact: true })
+    .waitFor();
+  const profileChecks = await page.evaluate(async () => {
+    const headers = {
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + sessionStorage.getItem("token"),
+    };
+    const forbidden = await fetch("/api/v1/auth/me", {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({
+        user_id: 1,
+        role_name: "admin",
+        full_name: "Hack",
+      }),
+    });
+    const anonymous = await fetch("/api/v1/auth/me", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ full_name: "Hack" }),
+    });
+    return [forbidden.status, anonymous.status];
+  });
+  assert.deepEqual(profileChecks, [400, 401]);
+  const [profileRows] = await connection.query(
+    "SELECT user_id,full_name,role_id FROM users ORDER BY user_id",
+  );
+  assert.equal(profileRows[0].full_name, "admin");
+  assert.equal(profileRows[2].role_id, 3);
+  assert.equal(profileRows[2].full_name, "Khách cập nhật hồ sơ");
+  results.push(
+    "Profile UI persists after reload; identity/role injection 400; anonymous 401; other user unchanged",
+  );
+  await nav(page, "Sản phẩm");
   await page
     .locator(".product")
     .first()

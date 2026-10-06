@@ -141,6 +141,61 @@ export function createAuthService({
       return publicUser(user);
     },
 
+    async updateMe(userId, input) {
+      const callerId = Number(userId);
+      if (!Number.isSafeInteger(callerId) || callerId <= 0)
+        throw new AppError(401, 'UNAUTHENTICATED', 'Danh tính không hợp lệ');
+      if (!input || typeof input !== 'object' || Array.isArray(input) || !Object.keys(input).length)
+        throw new AppError(400, 'VALIDATION_ERROR', 'Cần ít nhất một trường hồ sơ');
+      const allowed = ['full_name', 'phone', 'address'];
+      if (Object.keys(input).some((key) => !allowed.includes(key)))
+        throw new AppError(
+          400,
+          'VALIDATION_ERROR',
+          'Chỉ được cập nhật họ tên, điện thoại và địa chỉ',
+        );
+      const data = {};
+      if (Object.hasOwn(input, 'full_name')) {
+        if (
+          typeof input.full_name !== 'string' ||
+          input.full_name.trim().length < 2 ||
+          input.full_name.trim().length > 100
+        )
+          throw new AppError(400, 'VALIDATION_ERROR', 'Họ tên phải từ 2 đến 100 ký tự');
+        data.fullName = input.full_name.trim();
+      }
+      for (const key of ['phone', 'address']) {
+        if (!Object.hasOwn(input, key)) continue;
+        if (input[key] !== null && typeof input[key] !== 'string')
+          throw new AppError(400, 'VALIDATION_ERROR', `${key} phải là chuỗi hoặc null`);
+        const value = input[key]?.trim() || null;
+        if (key === 'phone' && value !== null && !/^\+?[0-9]{8,15}$/.test(value))
+          throw new AppError(
+            400,
+            'VALIDATION_ERROR',
+            'Điện thoại gồm 8–15 chữ số, có thể bắt đầu bằng +',
+          );
+        if (key === 'address' && value !== null && value.length > 255)
+          throw new AppError(400, 'VALIDATION_ERROR', 'Địa chỉ tối đa 255 ký tự');
+        data[key] = value;
+      }
+      const current = await userRepository.findById(callerId);
+      if (!current || current.status !== 'active')
+        throw new AppError(401, 'UNAUTHENTICATED', 'Tài khoản không còn hợp lệ');
+      try {
+        const user = await userRepository.updateUser(callerId, data);
+        return publicUser(user);
+      } catch (error) {
+        if (error?.code === 'ER_DUP_ENTRY')
+          throw new AppError(
+            409,
+            'CONFLICT',
+            'Số điện thoại không khả dụng, vui lòng dùng số khác',
+          );
+        throw error;
+      }
+    },
+
     async listUsers({ limit, offset }) {
       const [rows, total] = await Promise.all([
         userRepository.listUsers({ limit, offset }),
