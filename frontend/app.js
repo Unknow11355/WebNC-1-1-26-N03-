@@ -369,7 +369,14 @@ async function render() {
       const u = (await api("/auth/me")).data;
       html =
         title("Tài khoản", "Thông tin tài khoản hiện tại.") +
-        `<section class="panel stack"><h2>${e(u.full_name)}</h2><p>${e(u.email)}</p><p>Điện thoại: ${e(u.phone || "Chưa cập nhật")}</p><p>Địa chỉ: ${e(u.address || "Chưa cập nhật")}</p><div>${badge(u.role_name)} ${badge(u.status)}</div><p class="note">Chỉnh sửa hồ sơ cá nhân và đổi mật khẩu chưa có API tương ứng.</p></section>`;
+        `<section class="panel stack"><h2>${e(u.full_name)}</h2><p>Email đăng nhập: ${e(u.email)}</p><div>${badge(u.role_name)} ${badge(u.status)}</div>${form(field("full_name", "Họ và tên", "text", u.full_name) + field("phone", "Số điện thoại", "tel", u.phone || "", null, false) + field("address", "Địa chỉ", "text", u.address || "", null, false), "Lưu hồ sơ")}<p class="muted">Điện thoại: 8–15 chữ số, có thể bắt đầu bằng +. Để trống điện thoại/địa chỉ để xóa thông tin đó.</p><p class="note">Email và vai trò không thay đổi tại đây. Chức năng đổi mật khẩu chưa được triển khai.</p></section>`;
+      after = () =>
+        wireForm($("#main"), async (data) => {
+          const result = await api("/auth/me", { method: "PATCH", body: data });
+          state.user = result.data;
+          toast("Đã cập nhật hồ sơ");
+          await render();
+        });
     } else {
       const config = resources[current];
       const [r, categories] = await Promise.all([
