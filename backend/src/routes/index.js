@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { createShiftRoutes } from './shift.routes.js';
 import { createStaffToolsRoutes } from './staff-tools.routes.js';
 import { createProductController } from '../controllers/product.controller.js';
 import { createAuthRoutes } from './auth.routes.js';
@@ -26,12 +27,18 @@ export function createRoutes({
   voucherService,
   barcodeService,
   scheduleService,
+  shiftService,
   requireAuth,
   requireRole,
 } = {}) {
   if (!productService) throw new TypeError('Routes require productService');
 
   const router = Router();
+  if (shiftService && hasAuth(requireAuth, requireRole))
+    router.use(
+      '/work-shifts',
+      createShiftRoutes({ service: shiftService, requireAuth, requireRole }),
+    );
   if (barcodeService && scheduleService && hasAuth(requireAuth, requireRole)) {
     router.use(
       createStaffToolsRoutes({ barcodeService, scheduleService, requireAuth, requireRole }),
