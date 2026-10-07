@@ -7,6 +7,7 @@ import {
   labels,
 } from "./core.js";
 import { barcodeView, scheduleView, stopScanner } from "./staff-tools.js";
+import { shiftsView } from "./shifts.js";
 const $ = (s) => document.querySelector(s);
 const state = {
   token: sessionStorage.getItem("token") || "",
@@ -102,6 +103,7 @@ function shell() {
       ["logs", "Lịch sử kho"],
       ["barcode", "Mã vạch"],
       ["schedule", "Lịch nhân viên"],
+      ["shifts", "Ca làm"],
     );
   if (isAdmin())
     links.push(
@@ -222,7 +224,11 @@ async function render() {
   try {
     let html = "",
       after = () => {};
-    if (current === "barcode" || current === "schedule") {
+    if (current === "shifts") {
+      const view = shiftsView({ api, user: state.user, toast });
+      html = view.html;
+      after = view.after;
+    } else if (current === "barcode" || current === "schedule") {
       const view =
         current === "barcode"
           ? barcodeView({ api, toast })

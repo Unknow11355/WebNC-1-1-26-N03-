@@ -186,6 +186,8 @@ export function scheduleView({ api, user, toast }) {
           if (admin)
             form.elements.employee.selectedOptions[0].textContent = `${data.employee.full_name} · ${data.summary.blocked_days} ngày nghỉ/chặn`;
           result.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Ngày</th><th>Trạng thái lịch</th><th>Ghi chú</th><th>Ca thực tế</th>${admin ? "<th>Lưu</th>" : ""}</tr></thead><tbody>${data.days.map((d) => `<tr><td>${e(d.work_date)}</td><td>${admin ? `<select aria-label="Trạng thái ${d.work_date}" data-date="${d.work_date}">${["clear", "leave", "sick", "blocked"].map((s) => `<option value="${s}" ${(d.override_status || "clear") === s ? "selected" : ""}>${names[s]}</option>`).join("")}</select>` : e(names[d.override_status || d.default_status])}</td><td>${admin ? `<input aria-label="Ghi chú ${d.work_date}" data-note="${d.work_date}" maxlength="255" value="${e(d.note || "")}">` : e(d.note || "—")}</td><td>${d.shifts.length ? d.shifts.map((s) => `${e(s.start_time || "—")} – ${e(s.end_time || "chưa kết thúc")}`).join("<br>") : "—"}</td>${admin ? `<td><button type="button" data-save-day="${d.work_date}">Lưu ngày</button></td>` : ""}</tr>`).join("")}</tbody></table></div><p class="note">Đổi lịch không sửa/xóa ca đã ghi nhận. Việc kiểm tra lịch khi bắt đầu ca sẽ nối trong chức năng ca làm CN09; chưa coi là đã chặn thao tác mở ca.</p>`;
+          result.querySelector(".note").textContent =
+            "Đổi lịch không sửa/xóa ca đã ghi nhận. CN09 kiểm tra ngày nghỉ/chặn khi mở ca; không tự đóng ca đang làm và không bắt buộc có ca để bán POS.";
           result.querySelectorAll("[data-save-day]").forEach(
             (button) =>
               (button.onclick = async () => {

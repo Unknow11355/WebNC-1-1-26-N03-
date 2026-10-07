@@ -1,4 +1,6 @@
 import { createApp } from './app.js';
+import { createShiftRepository } from './repositories/shift.repository.js';
+import { createShiftService } from './services/shift.service.js';
 import { createBarcodeRepository } from './repositories/barcode.repository.js';
 import { createBarcodeService } from './services/barcode.service.js';
 import { createScheduleRepository } from './repositories/schedule.repository.js';
@@ -62,6 +64,7 @@ const { requireAuth, requireRole } = createAuthMiddleware({
 });
 
 const app = createApp({
+  shiftService: createShiftService({ repository: createShiftRepository(pool), transactionManager }),
   barcodeService: createBarcodeService(createBarcodeRepository(pool)),
   scheduleService: createScheduleService(createScheduleRepository(pool)),
   productRepository,

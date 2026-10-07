@@ -1,5 +1,7 @@
 # CN03 và CN08 — Mã vạch, lịch nhân viên
 
+**Cập nhật 07/10/2026:** CN09 đã nối kiểm tra lịch khi mở ca; xem [CN09](cn09-calam.md). Các ghi chú “chưa nối CN09” bên dưới mô tả thời điểm bàn giao CN08 trước đó.
+
 Ngày 06/10/2026. Nhánh `Linh/chucnang/mavach-lichnhanvien`, kế thừa nhánh hồ sơ `Linh/chucnang/capnhathoso`. Khi merge vào main chưa có hồ sơ, lịch sử nhánh cũng bao gồm CN02; không merge thiếu phụ thuộc.
 
 ## Đối chiếu source cũ

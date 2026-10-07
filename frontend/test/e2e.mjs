@@ -89,6 +89,7 @@ try {
     "03_buoi4_auth_schema.sql",
     "05_buoi5_migration.sql",
     "10_buoi6_migration.sql",
+    "cn09_shift_end.sql",
   ])
     await sqlFile(f);
   await connection.query(
@@ -293,6 +294,14 @@ try {
     40,
   );
   results.push("Inventory export to shelf and adjustment through UI");
+  await nav(employee, "Ca làm");
+  await employee
+    .getByRole("button", { name: "Bắt đầu ca", exact: true })
+    .click();
+  await employee
+    .getByRole("button", { name: "Kết thúc ca", exact: true })
+    .waitFor();
+  results.push("Employee starts shift through UI");
   await nav(employee, "Bán tại quầy");
   await employee
     .locator(".product")
@@ -317,6 +326,10 @@ try {
     1,
   );
   results.push("POS cash via UI confirmed in SQL");
+  const [[linked]] = await connection.query(
+    "SELECT shift_id FROM orders WHERE order_type='offline' LIMIT 1",
+  );
+  assert.ok(linked.shift_id);
   const admin = await browser.newPage({
     viewport: { width: 1440, height: 1000 },
   });
@@ -556,6 +569,108 @@ try {
   );
   await admin.screenshot({ path: join(output, "mobile.png"), fullPage: true });
   results.push("390px mobile without document overflow");
+  await employee.getByRole("button", { name: "Đóng", exact: true }).click();
+  await nav(employee, "Ca làm");
+  await employee
+    .getByRole("button", { name: "Kết thúc ca", exact: true })
+    .click();
+  await employee
+    .getByRole("button", { name: "Bắt đầu ca", exact: true })
+    .waitFor();
+  const [[closed]] = await connection.query(
+    "SELECT status,ended_at FROM work_shifts WHERE shift_id=?",
+    [linked.shift_id],
+  );
+  assert.equal(closed.status, "completed");
+  assert.ok(closed.ended_at);
+  const shiftChecks = await employee.evaluate(async () => {
+    const headers = {
+      Authorization: "Bearer " + sessionStorage.getItem("token"),
+      "Content-Type": "application/json",
+    };
+    const base = "/api/v1/work-shifts/employee/";
+    const start = () =>
+      fetch(base + "2/start", { method: "POST", headers, body: "{}" }).then(
+        (r) => r.status,
+      );
+    const concurrent = await Promise.all([start(), start()]);
+    const other = await fetch(base + "3/current", { headers }).then(
+      (r) => r.status,
+    );
+    const current = await fetch(base + "2/current", { headers }).then((r) =>
+      r.json(),
+    );
+    const stale = await fetch(base + "2/end", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ shift_id: current.data.shift_id - 1 }),
+    }).then((r) => r.status);
+    const ended = await fetch(base + "2/end", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ shift_id: current.data.shift_id }),
+    }).then((r) => r.status);
+    return { concurrent: concurrent.sort(), other, stale, ended };
+  });
+  assert.deepEqual(shiftChecks, {
+    concurrent: [201, 409],
+    other: 403,
+    stale: 409,
+    ended: 200,
+  });
+  await connection.query(
+    "INSERT INTO employee_day_overrides(employee_id,work_date,day_status,set_by) VALUES (2,DATE(UTC_TIMESTAMP()+INTERVAL 7 HOUR),'leave',1)",
+  );
+  const blocked = await employee.evaluate(async () =>
+    fetch("/api/v1/work-shifts/employee/2/start", {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer " + sessionStorage.getItem("token"),
+        "Content-Type": "application/json",
+      },
+      body: "{}",
+    }).then((r) => r.status),
+  );
+  assert.equal(blocked, 409);
+  await connection.query(
+    "DELETE FROM employee_day_overrides WHERE employee_id=2 AND work_date=DATE(UTC_TIMESTAMP()+INTERVAL 7 HOUR)",
+  );
+  await connection.query(
+    "INSERT INTO work_shifts(employee_id,shift_date,start_time,status) VALUES (2,DATE(UTC_TIMESTAMP()+INTERVAL 7 HOUR)-INTERVAL 1 DAY,'23:59:00','active')",
+  );
+  await nav(admin, "Ca làm");
+  await admin
+    .locator('select[name="employee"] option[value="2"]')
+    .waitFor({ state: "attached" });
+  await admin.locator('select[name="employee"]').selectOption("2");
+  await admin.getByRole("button", { name: "Kết thúc ca", exact: true }).click();
+  await admin
+    .getByRole("button", { name: "Bắt đầu ca", exact: true })
+    .waitFor();
+  const [[overnight]] = await connection.query(
+    "SELECT DATEDIFF(ended_at,shift_date) AS days FROM work_shifts ORDER BY shift_id DESC LIMIT 1",
+  );
+  assert.equal(overnight.days, 1);
+  results.push(
+    "Admin ends employee overnight shift through UI; full closing date persisted",
+  );
+  await employee.reload();
+  await employee
+    .getByRole("button", { name: "Bắt đầu ca", exact: true })
+    .waitFor();
+  await employee.setViewportSize({ width: 390, height: 844 });
+  assert.ok(
+    await employee.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  );
+  await employee.screenshot({
+    path: join(output, "shifts-mobile.png"),
+    fullPage: true,
+  });
+  results.push(
+    "CN09 POS link; end UI; concurrent start one winner; cross-user and stale end denied; leave blocked; mobile",
+  );
   assert.deepEqual(errors, []);
   console.log(
     JSON.stringify({ results, errors, screenshots: output }, null, 2),
