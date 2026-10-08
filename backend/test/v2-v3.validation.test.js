@@ -49,6 +49,7 @@ test('user service soft-delete keeps the user record and changes status', async 
       }),
       softDelete: async () => {
         removed = true;
+        return 1;
       },
     },
     hashPassword: async () => 'hash',
