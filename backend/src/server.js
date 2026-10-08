@@ -18,13 +18,11 @@ import { createOrderRepository } from './repositories/order.repository.js';
 import { createPosRepository } from './repositories/pos.repository.js';
 import { createProductRepository } from './repositories/product.repository.js';
 import { createReportRepository } from './repositories/report.repository.js';
-import { createScheduleRepository } from './repositories/schedule.repository.js';
 import { createSessionRepository } from './repositories/session.repository.js';
 import { createUserRepository } from './repositories/user.repository.js';
 import { createVoucherRepository } from './repositories/voucher.repository.js';
 import { createAuthService } from './services/auth.service.js';
 import { createAuditService } from './services/audit.service.js';
-import { createBarcodeService } from './services/barcode.service.js';
 import { createCartService } from './services/cart.service.js';
 import { createCategoryService } from './services/category.service.js';
 import { createInventoryService } from './services/inventory.service.js';
@@ -32,14 +30,8 @@ import { createNotificationService } from './services/notification.service.js';
 import { createOrderService } from './services/order.service.js';
 import { createPosService } from './services/pos.service.js';
 import { createReportService } from './services/report.service.js';
-import { createScheduleService } from './services/schedule.service.js';
 import { createUserService } from './services/user.service.js';
 import { createVoucherService } from './services/voucher.service.js';
-import { env } from './config/env.js';
-import { pool } from './config/database.js';
-import { createTransactionManager } from './config/transaction.js';
-import { createAuthMiddleware } from './middlewares/auth.middleware.js';
-import { createCartRepository } from './repositories/cart.repository.js';
 
 if (!env.jwtSecret || env.jwtSecret.length < 16)
   throw new Error('JWT_SECRET is required and must be at least 16 characters');
@@ -99,8 +91,8 @@ const { requireAuth, requireRole } = createAuthMiddleware({
 
 const app = createApp({
   shiftService: createShiftService({ repository: createShiftRepository(pool), transactionManager }),
-  barcodeService: createBarcodeService(createBarcodeRepository(pool)),
-  scheduleService: createScheduleService(createScheduleRepository(pool)),
+  barcodeService,
+  scheduleService,
   productRepository,
   cartService,
   authService,
