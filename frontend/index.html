@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta
+      name="description"
+      content="Siêu thị mini — tra cứu sản phẩm, đặt hàng và quản lý vận hành siêu thị."
+    />
+    <title>Siêu thị mini</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script type="module" src="/app.js"></script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Đến nội dung chính</a>
+    <header>
+      <a class="brand" href="#shop"
+        ><span class="logo">S</span
+        ><span>Siêu thị mini<small>Tươi ngon mỗi ngày</small></span></a
+      >
+      <div id="identity"></div>
+    </header>
+    <div class="layout">
+      <aside>
+        <p class="eyebrow">KHÔNG GIAN CỦA BẠN</p>
+        <nav id="nav" aria-label="Điều hướng chính"></nav>
+        <div class="side-note">Mua sắm thuận tiện.<br />Vận hành rõ ràng.</div>
+      </aside>
+      <main id="main" tabindex="-1"></main>
+    </div>
+    <footer>Dữ liệu mô phỏng phục vụ học tập · Nhóm 03 · CSE702051</footer>
+    <div id="notice" role="status" aria-live="polite"></div>
+    <dialog id="dialog" aria-labelledby="dialog-title">
+      <div class="dialog-head">
+        <h2 id="dialog-title"></h2>
+        <button
+          id="close-dialog"
+          type="button"
+          class="secondary"
+          aria-label="Đóng"
+        >
+          Đóng
+        </button>
+      </div>
+      <div id="dialog-content"></div>
+    </dialog>
+  </body>
+</html>

@@ -1,5 +1,9 @@
 # WebNC-1-1-26-N03-
 
+## Giao diện web cho các chức năng đã có
+
+Xem [hướng dẫn frontend](frontend/README.md). Chạy backend theo hướng dẫn bên dưới, sau đó mở terminal khác: `cd frontend` và `npm start`; truy cập `http://127.0.0.1:5173`. Frontend giữ luồng nghiệp vụ source tham khảo và chỉ nối API đã có; không thay backend, không đánh dấu các chức năng Buổi 7 chưa triển khai là đã hoàn thành.
+
 ## Buổi 7 — Phân công hiện tại
 
 **Linh V1, Vinh V2/V3, Kiên V4/V5.** Bắt đầu tại [Checklist Buổi 7](docs/checklistbuoi7.md), [bảng đối chiếu 10 khối](docs/buoi7-v1-doichieu.md) và [hợp đồng triển khai](docs/buoi7-v1-hopdong.md). Nhánh tài liệu `Linh/v1/buoi7` kế thừa Buổi 6 đã tích hợp `tichhopLinhcheckvasualai`. Tài liệu là bàn giao V1, không xác nhận chức năng Buổi 7 đã được triển khai/nghiệm thu. Các mục Buổi 4–6 bên dưới giữ làm lịch sử.
