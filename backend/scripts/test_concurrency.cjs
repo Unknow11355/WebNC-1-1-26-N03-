@@ -1,10 +1,15 @@
+/* global console, process */
 const axios = require('axios');
 const crypto = require('crypto');
 
-// Chỉnh lại URL nếu endpoint của nhóm khác
 const API_URL = 'http://localhost:3000/api/v1/pos/sales';
-const TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjksImVtYWlsIjoiZW1wbG95ZWUuYjVAbWluaS5sb2NhbCIsImlhdCI6MTc5MTA0NDIzOCwiZXhwIjoxNzkxMDQ3ODM4LCJqdGkiOiI1NzIyYTE1YS1lMzRjLTRkYmYtYjQyMi05OTU2OTgwYWM5ZmQifQ.lCOLhO13rbutZxWO5yBLsgu5k50vRrWp_6RIXJaTtgE  '; // Dán token lấy ở Bước 1
-const PRODUCT_ID = 20; // Thay bằng product_id lấy ở Bước 2
+const TOKEN = process.env.TEST_TOKEN;
+const PRODUCT_ID = Number(process.env.TEST_PRODUCT_ID);
+if (!TOKEN || !Number.isInteger(PRODUCT_ID) || PRODUCT_ID <= 0) {
+    console.error('TEST_TOKEN and TEST_PRODUCT_ID are required');
+    process.exit(1);
+}
+
 
 async function runConcurrencyTest() {
     console.log("Bắt đầu gửi 50 request đồng thời...");
