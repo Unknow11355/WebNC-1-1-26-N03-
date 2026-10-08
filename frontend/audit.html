@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audit Log - Admin</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { padding: 20px; font-family: sans-serif; }
+        nav { margin-bottom: 20px; background: #343a40; padding: 15px; border-radius: 5px; }
+        nav a { color: white; text-decoration: none; margin-right: 20px; font-weight: bold; }
+        nav a:hover { text-decoration: underline; }
+        .filter-bar { padding: 15px; background: #f8f9fa; border-radius: 5px; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #007bff; color: white; }
+        .badge { padding: 4px 8px; border-radius: 12px; font-size: 12px; color: white; font-weight: bold; }
+        .bg-success { background-color: #28a745; }
+        .bg-danger { background-color: #dc3545; }
+        .bg-warning { background-color: #ffc107; color: #333; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="reports.html">📊 Báo Cáo & Xuất CSV</a>
+        <a href="audit.html">📝 Nhật Ký Hoạt Động</a>
+        <a href="upload.html">☁️ Tải Ảnh (Bảo Mật)</a>
+    </nav>
+
+    <h2>Nhật Ký Hoạt Động (Audit Log)</h2>
+
+    <div class="filter-bar">
+        <label>Tìm theo hành động:</label>
+        <select id="actionFilter" onchange="filterLogs()">
+            <option value="ALL">-- Tất cả --</option>
+            <option value="LOGIN_SUCCESS">LOGIN_SUCCESS (Đăng nhập thành công)</option>
+            <option value="DATA_DELETED">DATA_DELETED (Xóa dữ liệu)</option>
+            <option value="UNAUTHORIZED_ACCESS">UNAUTHORIZED_ACCESS (Truy cập trái phép)</option>
+        </select>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Thời gian</th>
+                <th>Hành động</th>
+                <th>Người thực hiện</th>
+                <th>Kết quả / IP</th>
+            </tr>
+        </thead>
+        <tbody id="logTableBody">
+            <!-- Dữ liệu sẽ được render bằng JS -->
+        </tbody>
+    </table>
+
+    <script>
+        // Dữ liệu giả lập (Mock data) chờ API từ Vinh
+        const mockLogs = [
+            { time: '2026-10-08 22:15:00', action: 'LOGIN_SUCCESS', user: 'admin.b5@mini.local', details: 'IP: 192.168.1.5', status: 'bg-success' },
+            { time: '2026-10-08 21:40:12', action: 'DATA_DELETED', user: 'kien.th@mini.local', details: 'Xóa sản phẩm ID 45', status: 'bg-warning' },
+            { time: '2026-10-08 20:05:33', action: 'UNAUTHORIZED_ACCESS', user: 'Khách', details: 'Cố gắng truy cập /api/v1/admin', status: 'bg-danger' }
+        ];
+
+        function renderLogs(filter = 'ALL') {
+            const tbody = document.getElementById('logTableBody');
+            const filtered = filter === 'ALL' ? mockLogs : mockLogs.filter(log => log.action === filter);
+
+            tbody.innerHTML = filtered.map(log => `
+                <tr>
+                    <td>${log.time}</td>
+                    <td><span class="badge ${log.status}">${log.action}</span></td>
+                    <td>${log.user}</td>
+                    <td>${log.details}</td>
+                </tr>
+            `).join('');
+        }
+
+        function filterLogs() {
+            const filterValue = document.getElementById('actionFilter').value;
+            renderLogs(filterValue);
+        }
+
+        // Tự động load dữ liệu khi mở trang
+        window.onload = () => renderLogs();
+    </script>
+</body>
+</html>
