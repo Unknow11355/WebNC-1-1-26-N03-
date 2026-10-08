@@ -1,0 +1,59 @@
+const axios = require('axios');
+const crypto = require('crypto');
+
+// Chỉnh lại URL nếu endpoint của nhóm khác
+const API_URL = 'http://localhost:3000/api/v1/pos/sales';
+const TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjksImVtYWlsIjoiZW1wbG95ZWUuYjVAbWluaS5sb2NhbCIsImlhdCI6MTc5MTA0NDIzOCwiZXhwIjoxNzkxMDQ3ODM4LCJqdGkiOiI1NzIyYTE1YS1lMzRjLTRkYmYtYjQyMi05OTU2OTgwYWM5ZmQifQ.lCOLhO13rbutZxWO5yBLsgu5k50vRrWp_6RIXJaTtgE  '; // Dán token lấy ở Bước 1
+const PRODUCT_ID = 20; // Thay bằng product_id lấy ở Bước 2
+
+async function runConcurrencyTest() {
+    console.log("Bắt đầu gửi 50 request đồng thời...");
+    const requests = [];
+
+    for (let i = 0; i < 50; i++) {
+        const uniqueKey = crypto.randomUUID();
+
+        const payload = {
+            items: [{ product_id: PRODUCT_ID, quantity: 1 }],
+            customer_id: null,
+            payment_method: "cash",
+            note: `Test đồng thời luồng ${i}`
+        };
+
+        const config = {
+            headers: {
+                'Authorization': `Bearer ${TOKEN}`,
+                'Idempotency-Key': uniqueKey,
+                'Content-Type': 'application/json'
+            },
+            validateStatus: () => true
+        };
+
+        requests.push(axios.post(API_URL, payload, config));
+    }
+
+    const startTime = Date.now();
+    const results = await Promise.all(requests);
+    const endTime = Date.now();
+
+    let successCount = 0;
+    let conflictCount = 0;
+    let errorCount = 0;
+
+    results.forEach((res, index) => {
+        if (res.status === 201 || res.status === 200) successCount++;
+        else if (res.status === 409) conflictCount++;
+        else {
+            errorCount++;
+            console.log(`[Req ${index}] Lỗi khác: ${res.status} - ${JSON.stringify(res.data)}`);
+        }
+    });
+
+    console.log(`\n=== KẾT QUẢ TEST ĐỒNG THỜI ===`);
+    console.log(`Thời gian chạy: ${endTime - startTime} ms`);
+    console.log(`Thành công (201/200): ${successCount} đơn (Kỳ vọng: 10)`);
+    console.log(`Hết hàng (409): ${conflictCount} đơn (Kỳ vọng: 40)`);
+    console.log(`Lỗi khác: ${errorCount} đơn (Kỳ vọng: 0)`);
+}
+
+runConcurrencyTest();
