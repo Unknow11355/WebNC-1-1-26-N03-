@@ -8,7 +8,7 @@ export function createAuthController(service) {
       res.status(201).json({ success: true, data: await service.register(req.body) });
     },
     async login(req, res) {
-      res.status(200).json({ success: true, data: await service.login(req.body) });
+      res.status(200).json({ success: true, data: await service.login(req.body, req.traceId) });
     },
     async logout(req, res) {
       await service.logout(req.sessionId);
@@ -16,6 +16,22 @@ export function createAuthController(service) {
     },
     async me(req, res) {
       res.status(200).json({ success: true, data: await service.me(req.auth.userId) });
+    },
+    async updateMe(req, res) {
+      res
+        .status(200)
+        .json({ success: true, data: await service.updateMe(req.auth.userId, req.body) });
+    },
+    async changePassword(req, res) {
+      res
+        .status(200)
+        .json({ success: true, data: await service.changePassword(req.auth.userId, req.body) });
+    },
+    async requestPasswordReset(req, res) {
+      res.status(202).json({ success: true, data: await service.requestPasswordReset(req.body) });
+    },
+    async confirmPasswordReset(req, res) {
+      res.status(200).json({ success: true, data: await service.confirmPasswordReset(req.body) });
     },
     async listUsers(req, res) {
       const page = Number(req.query.page ?? 1);
@@ -26,9 +42,8 @@ export function createAuthController(service) {
         !Number.isInteger(limit) ||
         limit <= 0 ||
         limit > 20
-      ) {
+      )
         throw new AppError(400, 'VALIDATION_ERROR', 'Tham số phân trang không hợp lệ');
-      }
       const result = await service.listUsers({ limit, offset: (page - 1) * limit });
       res.status(200).json({
         success: true,

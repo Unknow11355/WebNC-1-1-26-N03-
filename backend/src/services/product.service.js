@@ -14,12 +14,25 @@ function positiveInteger(value, fallback, field, max) {
   return Number(value);
 }
 
+function nonNegativeNumber(value, field) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < 0)
+    throw new AppError(400, 'VALIDATION_ERROR', `${field} không hợp lệ`);
+  return number;
+}
+
 function positiveNumber(value, field, allowZero = false) {
   const number = Number(value);
-  if (!Number.isFinite(number) || (allowZero ? number < 0 : number <= 0)) {
+  if (!Number.isFinite(number) || (allowZero ? number < 0 : number <= 0))
     throw new AppError(400, 'VALIDATION_ERROR', `${field} không hợp lệ`);
-  }
   return number;
+}
+
+function booleanQuery(value, field) {
+  if (value === undefined) return null;
+  if (value === 'true') return true;
+  if (value === 'false') return false;
+  throw new AppError(400, 'VALIDATION_ERROR', `${field} chỉ nhận true hoặc false`);
 }
 
 function normalizeInput(input, current = null) {
@@ -51,22 +64,50 @@ function normalizeInput(input, current = null) {
   };
 }
 
-export function createProductService(repository) {
+export function createProductService(input) {
+  const repository = input?.repository ?? input;
+  const transactionManager = input?.repository ? (input.transactionManager ?? null) : null;
+  const auditRepository = input?.repository ? (input.auditRepository ?? null) : null;
   if (!repository) throw new TypeError('Product service requires repository');
-
   return {
-    async list(query) {
-      const page = positiveInteger(query.page, 1, 'page', 1000000);
+    async list(query = {}) {
+      const page = positiveInteger(query.page, 1, 'page', 1_000_000);
       const limit = positiveInteger(query.limit, 20, 'limit', 20);
+      const q = query.q === undefined ? null : String(query.q).trim();
+      if (q !== null && q.length > 100)
+        throw new AppError(400, 'VALIDATION_ERROR', 'q tối đa 100 ký tự');
       const categoryId =
-        query.category_id === null || query.category_id === undefined
+        query.category_id === undefined || query.category_id === ''
           ? null
           : positiveInteger(query.category_id, null, 'category_id', Number.MAX_SAFE_INTEGER);
+      const minPrice =
+        query.min_price === undefined || query.min_price === ''
+          ? null
+          : nonNegativeNumber(query.min_price, 'min_price');
+      const maxPrice =
+        query.max_price === undefined || query.max_price === ''
+          ? null
+          : nonNegativeNumber(query.max_price, 'max_price');
+      if (minPrice !== null && maxPrice !== null && minPrice > maxPrice)
+        throw new AppError(400, 'VALIDATION_ERROR', 'min_price không được lớn hơn max_price');
+      const inStock = booleanQuery(query.in_stock, 'in_stock');
+      const sort = String(query.sort ?? 'product_id');
+      const order = String(query.order ?? 'asc').toLowerCase();
+      if (!['product_id', 'product_name', 'price', 'stock'].includes(sort))
+        throw new AppError(400, 'VALIDATION_ERROR', 'sort không hợp lệ');
+      if (!['asc', 'desc'].includes(order))
+        throw new AppError(400, 'VALIDATION_ERROR', 'order không hợp lệ');
+
       const result = await repository.list({
         limit,
         offset: (page - 1) * limit,
-        q: query.q ? String(query.q).trim() : null,
+        q: q || null,
         categoryId,
+        minPrice,
+        maxPrice,
+        inStock,
+        sort,
+        order,
       });
       return {
         data: result.rows,
@@ -90,11 +131,30 @@ export function createProductService(repository) {
         throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy sản phẩm');
       return repository.update(productId, normalizeInput(input, current));
     },
-    async softDelete(rawId) {
+    async softDelete(rawId, auth = null) {
       const productId = positiveInteger(rawId, null, 'product_id', Number.MAX_SAFE_INTEGER);
-      if (!(await repository.findById(productId)))
-        throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy sản phẩm');
-      await repository.softDelete(productId);
+      const work = async (connection) => {
+        const current = await repository.findById(productId, connection ?? undefined);
+        if (!current) throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy sản phẩm');
+        const affected = await repository.softDelete(productId, connection ?? undefined);
+        if (affected !== 1) throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy sản phẩm');
+        if (auditRepository) {
+          await auditRepository.create(
+            {
+              actorId: auth?.userId ?? null,
+              action: 'DATA_DELETED',
+              entityType: 'product',
+              entityId: productId,
+              outcome: 'SUCCESS',
+              requestId: auth?.requestId ?? null,
+              metadata: { soft_delete: true, previous_status: current.status },
+            },
+            connection ?? undefined,
+          );
+        }
+      };
+      if (transactionManager) await transactionManager.run(work);
+      else await work(null);
     },
   };
 }

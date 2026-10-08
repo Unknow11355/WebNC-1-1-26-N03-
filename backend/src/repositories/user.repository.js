@@ -97,5 +97,32 @@ export function createUserRepository(db) {
       );
       return result.affectedRows;
     },
+    async createPasswordResetToken({ userId, tokenHash, expiresAt }, executor = db) {
+      await executor.execute("SET time_zone = '+07:00'");
+      await executor.execute(
+        `INSERT INTO password_reset_tokens (user_id, otp_code, token_hash, type, expired_at, used)
+         VALUES (?, NULL, ?, 'password_reset', ?, 0)`,
+        [userId, tokenHash, expiresAt],
+      );
+    },
+    async findActivePasswordResetToken(tokenHash, executor = db, lock = false) {
+      await executor.execute("SET time_zone = '+07:00'");
+      const [rows] = await executor.execute(
+        `SELECT id AS token_id, user_id, token_hash, expired_at, used
+         FROM password_reset_tokens
+         WHERE token_hash = ? AND type = 'password_reset' AND used = 0
+           AND expired_at > CURRENT_TIMESTAMP
+         ORDER BY id DESC
+         LIMIT 1${lock ? ' FOR UPDATE' : ''}`,
+        [tokenHash],
+      );
+      return rows[0] ?? null;
+    },
+    async markPasswordResetUsed(tokenId, executor = db) {
+      await executor.execute(
+        `UPDATE password_reset_tokens SET used = 1 WHERE id = ? AND used = 0`,
+        [tokenId],
+      );
+    },
   };
 }

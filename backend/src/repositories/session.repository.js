@@ -3,6 +3,7 @@ export function createSessionRepository(db) {
 
   return {
     async create({ jti, userId, expiresAt }, executor = db) {
+      await executor.execute("SET time_zone = '+07:00'");
       await executor.execute(
         `INSERT INTO user_sessions (session_id, user_id, expires_at)
          VALUES (?, ?, ?)`,
@@ -11,6 +12,7 @@ export function createSessionRepository(db) {
     },
 
     async findActiveById(sessionId, executor = db) {
+      await executor.execute("SET time_zone = '+07:00'");
       const [rows] = await executor.execute(
         `SELECT session_id, user_id, expires_at, revoked_at
          FROM user_sessions
@@ -24,12 +26,23 @@ export function createSessionRepository(db) {
     },
 
     async revoke(sessionId, executor = db) {
+      await executor.execute("SET time_zone = '+07:00'");
       const [result] = await executor.execute(
         `UPDATE user_sessions
          SET revoked_at = CURRENT_TIMESTAMP
-         WHERE session_id = ?
-           AND revoked_at IS NULL`,
+         WHERE session_id = ? AND revoked_at IS NULL`,
         [sessionId],
+      );
+      return result.affectedRows;
+    },
+
+    async revokeAllForUser(userId, executor = db) {
+      await executor.execute("SET time_zone = '+07:00'");
+      const [result] = await executor.execute(
+        `UPDATE user_sessions
+         SET revoked_at = CURRENT_TIMESTAMP
+         WHERE user_id = ? AND revoked_at IS NULL`,
+        [userId],
       );
       return result.affectedRows;
     },
