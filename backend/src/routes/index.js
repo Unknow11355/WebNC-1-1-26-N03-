@@ -8,6 +8,7 @@ import { createOrderRoutes } from './order.routes.js';
 import { createPosRoutes } from './pos.routes.js';
 import { createUserRoutes } from './user.routes.js';
 import { createVoucherRoutes } from './voucher.routes.js';
+import uploadRoutes from './upload.routes.js';
 
 function hasAuth(requireAuth, requireRole) {
   return typeof requireAuth === 'function' && typeof requireRole === 'function';
@@ -80,6 +81,7 @@ export function createRoutes({
     router.post('/products', requireAuth, requireRole('admin'), products.create);
     router.patch('/products/:productId', requireAuth, requireRole('admin'), products.update);
     router.delete('/products/:productId', requireAuth, requireRole('admin'), products.remove);
+    router.use('/uploads', requireAuth, requireRole('admin'), uploadRoutes);
   }
 
   return router;
