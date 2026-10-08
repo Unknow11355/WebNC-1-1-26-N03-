@@ -1,6 +1,16 @@
 import { createApp } from './app.js';
 import { createAuditRepository } from './repositories/audit.repository.js';
+import { createShiftRepository } from './repositories/shift.repository.js';
+import { createShiftService } from './services/shift.service.js';
 import { createBarcodeRepository } from './repositories/barcode.repository.js';
+import { createBarcodeService } from './services/barcode.service.js';
+import { createScheduleRepository } from './repositories/schedule.repository.js';
+import { createScheduleService } from './services/schedule.service.js';
+import { env } from './config/env.js';
+import { pool } from './config/database.js';
+import { createTransactionManager } from './config/transaction.js';
+import { createAuthMiddleware } from './middlewares/auth.middleware.js';
+import { createCartRepository } from './repositories/cart.repository.js';
 import { createCategoryRepository } from './repositories/category.repository.js';
 import { createInventoryRepository } from './repositories/inventory.repository.js';
 import { createNotificationRepository } from './repositories/notification.repository.js';
@@ -88,8 +98,9 @@ const { requireAuth, requireRole } = createAuthMiddleware({
 });
 
 const app = createApp({
-  barcodeService,
-  scheduleService,
+  shiftService: createShiftService({ repository: createShiftRepository(pool), transactionManager }),
+  barcodeService: createBarcodeService(createBarcodeRepository(pool)),
+  scheduleService: createScheduleService(createScheduleRepository(pool)),
   productRepository,
   cartService,
   authService,
