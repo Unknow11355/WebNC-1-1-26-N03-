@@ -15,7 +15,12 @@ function pagination(query) {
   return { page, limit, offset: (page - 1) * limit };
 }
 
-export function createOrderService({ orderRepository, voucherRepository, transactionManager }) {
+export function createOrderService({
+  orderRepository,
+  voucherRepository,
+  transactionManager,
+  notificationRepository = null,
+}) {
   if (!orderRepository || !voucherRepository || !transactionManager)
     throw new TypeError('Order service requires repositories and transaction manager');
 
@@ -60,6 +65,14 @@ export function createOrderService({ orderRepository, voucherRepository, transac
     return { ...order, items: await orderRepository.getItems(orderId, executor) };
   }
 
+  async function notify(recipientUserId, orderId, eventKey, title, message, connection) {
+    if (!notificationRepository || !recipientUserId) return;
+    await notificationRepository.createEvent(
+      { recipientUserId, orderId, eventKey, title, message },
+      connection,
+    );
+  }
+
   return {
     async checkout(auth, input) {
       const customerId = userId(auth);
@@ -88,7 +101,6 @@ export function createOrderService({ orderRepository, voucherRepository, transac
         if (!cart) throw new AppError(400, 'VALIDATION_ERROR', 'Giỏ hàng đang trống');
         const items = await orderRepository.getCartItemsForUpdate(cart.cart_id, connection);
         if (!items.length) throw new AppError(400, 'VALIDATION_ERROR', 'Giỏ hàng đang trống');
-
         let totalAmount = 0;
         const normalizedItems = [];
         for (const item of items) {
@@ -108,7 +120,6 @@ export function createOrderService({ orderRepository, voucherRepository, transac
           totalAmount += subtotal;
           normalizedItems.push({ product_id: Number(item.product_id), quantity, price, subtotal });
         }
-
         const voucherValue = input?.voucher_id ?? input?.voucher_code ?? null;
         const { voucher, discountAmount } = await getVoucher(voucherValue, totalAmount, connection);
         const order = await orderRepository.createOrder(
@@ -125,7 +136,6 @@ export function createOrderService({ orderRepository, voucherRepository, transac
           },
           connection,
         );
-
         for (const item of normalizedItems) {
           await orderRepository.createOrderItem(
             {
@@ -203,11 +213,20 @@ export function createOrderService({ orderRepository, voucherRepository, transac
         if (order.status !== 'pending')
           throw new AppError(409, 'CONFLICT', 'Đơn không còn ở trạng thái chờ xử lý');
         const nextStatus = order.delivery_method === 'delivery' ? 'shipping' : 'completed';
-        return orderRepository.updateStatus(
+        const updated = await orderRepository.updateStatus(
           order.order_id,
           { status: nextStatus, orderStatus: nextStatus, employeeId, confirmedAt: new Date() },
           connection,
         );
+        await notify(
+          order.customer_id,
+          order.order_id,
+          `ORDER_CONFIRMED:${order.order_id}`,
+          'Đơn hàng đã được xác nhận',
+          `Đơn #${order.order_id} đã được xác nhận.`,
+          connection,
+        );
+        return updated;
       });
     },
 
@@ -236,7 +255,7 @@ export function createOrderService({ orderRepository, voucherRepository, transac
             connection,
           );
         if (order.voucher_id) await voucherRepository.decrementUsed(order.voucher_id, connection);
-        return orderRepository.updateStatus(
+        const updated = await orderRepository.updateStatus(
           order.order_id,
           {
             status: 'rejected',
@@ -247,6 +266,15 @@ export function createOrderService({ orderRepository, voucherRepository, transac
           },
           connection,
         );
+        await notify(
+          order.customer_id,
+          order.order_id,
+          `ORDER_REJECTED:${order.order_id}`,
+          'Đơn hàng bị từ chối',
+          `Đơn #${order.order_id} bị từ chối: ${reason}`,
+          connection,
+        );
+        return updated;
       });
     },
 
