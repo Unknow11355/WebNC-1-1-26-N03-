@@ -1,0 +1,60 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Mini Supermarket API - Buoi 7 Vinh V2/V3",
+    "version": "0.7.0"
+  },
+  "paths": {
+    "/api/v1/products": {
+      "get": {
+        "summary": "Tìm kiếm sản phẩm có điều kiện",
+        "parameters": [
+          {"in":"query","name":"q","schema":{"type":"string","maxLength":100}},
+          {"in":"query","name":"category_id","schema":{"type":"integer","minimum":1}},
+          {"in":"query","name":"min_price","schema":{"type":"number","minimum":0}},
+          {"in":"query","name":"max_price","schema":{"type":"number","minimum":0}},
+          {"in":"query","name":"in_stock","schema":{"type":"boolean"}},
+          {"in":"query","name":"sort","schema":{"type":"string","enum":["product_id","product_name","price","stock"],"default":"product_id"}},
+          {"in":"query","name":"order","schema":{"type":"string","enum":["asc","desc"],"default":"asc"}},
+          {"in":"query","name":"page","schema":{"type":"integer","minimum":1,"default":1}},
+          {"in":"query","name":"limit","schema":{"type":"integer","minimum":1,"maximum":20,"default":20}}
+        ],
+        "responses":{"200":{"description":"Danh sách active products và COUNT theo cùng bộ lọc"},"400":{"description":"Tham số không hợp lệ"}}
+      }
+    },
+    "/api/v1/reports/revenue": {
+      "get":{"summary":"R1 - Báo cáo doanh thu theo ngày","security":[{"bearerAuth":[]}],"parameters":[{"$ref":"#/components/parameters/from"},{"$ref":"#/components/parameters/to"}],"responses":{"200":{"description":"Admin only"},"403":{"description":"Forbidden"},"400":{"description":"Date invalid"}}}
+    },
+    "/api/v1/reports/products": {
+      "get":{"summary":"R2 - Báo cáo sản phẩm","security":[{"bearerAuth":[]}],"parameters":[{"$ref":"#/components/parameters/from"},{"$ref":"#/components/parameters/to"}],"responses":{"200":{"description":"Admin only"},"403":{"description":"Forbidden"},"400":{"description":"Date invalid"}}}
+    },
+    "/api/v1/reports/employees": {
+      "get":{"summary":"R3 - Báo cáo doanh thu nhân viên","security":[{"bearerAuth":[]}],"parameters":[{"$ref":"#/components/parameters/from"},{"$ref":"#/components/parameters/to"}],"responses":{"200":{"description":"Admin only"},"403":{"description":"Forbidden"},"400":{"description":"Date invalid"}}}
+    },
+    "/api/v1/audit-logs": {
+      "get":{"summary":"Tra cứu audit log","security":[{"bearerAuth":[]}],"parameters":[{"in":"query","name":"actor_id","schema":{"type":"integer","minimum":1}},{"in":"query","name":"action","schema":{"type":"string","enum":["LOGIN_SUCCESS","LOGIN_FAILURE","ROLE_CHANGED","DATA_DELETED"]}},{"in":"query","name":"outcome","schema":{"type":"string","enum":["SUCCESS","FAILURE"]}},{"$ref":"#/components/parameters/from"},{"$ref":"#/components/parameters/to"},{"in":"query","name":"page","schema":{"type":"integer","minimum":1,"default":1}},{"in":"query","name":"limit","schema":{"type":"integer","minimum":1,"maximum":20,"default":20}}],"responses":{"200":{"description":"Admin only"},"403":{"description":"Forbidden"}}}
+    },
+    "/api/v1/notifications": {
+      "get":{"summary":"Thông báo của chính người dùng","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"Chỉ trả thông báo thuộc recipient_user_id"}}}
+    },
+    "/api/v1/notifications/{id}/read": {
+      "patch":{"summary":"Đánh dấu đã đọc","security":[{"bearerAuth":[]}],"parameters":[{"in":"path","name":"id","required":true,"schema":{"type":"integer","minimum":1}}],"responses":{"200":{"description":"Updated"},"404":{"description":"Không tìm thấy notification của người dùng"}}}
+    },
+    "/api/v1/auth/me/password": {
+      "patch":{"summary":"Đổi mật khẩu khi đã đăng nhập","security":[{"bearerAuth":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["current_password","new_password"],"properties":{"current_password":{"type":"string","minLength":8,"maxLength":72},"new_password":{"type":"string","minLength":8,"maxLength":72}}}}}},"responses":{"200":{"description":"Password changed and sessions revoked"},"401":{"description":"Mật khẩu hiện tại sai"}}}
+    },
+    "/api/v1/auth/password-reset/request": {
+      "post":{"summary":"Yêu cầu khôi phục mật khẩu","requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["email"],"properties":{"email":{"type":"string","format":"email"}}}}}},"responses":{"202":{"description":"Phản hồi chung, không tiết lộ email có tồn tại"},"429":{"description":"Rate limited"}}}
+    },
+    "/api/v1/auth/password-reset/confirm": {
+      "post":{"summary":"Xác nhận khôi phục bằng token","requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["token","new_password"],"properties":{"token":{"type":"string"},"new_password":{"type":"string","minLength":8,"maxLength":72}}}}}},"responses":{"200":{"description":"Reset thành công; token dùng một lần"},"400":{"description":"Token invalid/expired"}}}
+    }
+  },
+  "components": {
+    "securitySchemes": {"bearerAuth":{"type":"http","scheme":"bearer","bearerFormat":"JWT"}},
+    "parameters": {
+      "from":{"in":"query","name":"from","required":true,"schema":{"type":"string","format":"date"}},
+      "to":{"in":"query","name":"to","required":true,"schema":{"type":"string","format":"date"}}
+    }
+  }
+}
