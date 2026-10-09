@@ -59,6 +59,7 @@ function formatMoneyCents(cents) {
 function assertUnsupportedFields(input, items) {
   const fields = [
     'employee_id',
+    'shift_id',
     'order_type',
     'delivery_method',
     'status',

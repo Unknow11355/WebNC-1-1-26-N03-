@@ -1,0 +1,31 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "CN02 - Hồ sơ cá nhân (đặc tả bổ sung)", "version": "1.0.0" },
+  "servers": [{ "url": "/api/v1" }],
+  "paths": {
+    "/auth/me": {
+      "patch": {
+        "summary": "Cập nhật hồ sơ của tài khoản đăng nhập",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": {
+            "type": "object", "additionalProperties": false, "minProperties": 1,
+            "properties": {
+              "full_name": { "type": "string", "minLength": 2, "maxLength": 100, "description": "Kiểm tra độ dài sau trim" },
+              "phone": { "type": "string", "nullable": true, "pattern": "^(\\+?[0-9]{8,15})?$", "description": "Trim trước kiểm tra; rỗng/null để xóa" },
+              "address": { "type": "string", "nullable": true, "maxLength": 255, "description": "Trim; rỗng/null để xóa" }
+            }
+          } } }
+        },
+        "responses": {
+          "200": { "description": "Hồ sơ mới, không có hash mật khẩu", "content": { "application/json": { "schema": { "type": "object", "properties": { "success": { "type": "boolean", "enum": [true] }, "data": { "type": "object", "properties": { "user_id": { "type": "integer" }, "full_name": { "type": "string" }, "email": { "type": "string" }, "phone": { "type": "string", "nullable": true }, "address": { "type": "string", "nullable": true }, "role_name": { "type": "string" }, "status": { "type": "string" } } } } } } } },
+          "400": { "description": "Body sai hoặc có trường không được phép" },
+          "401": { "description": "Phiên/tài khoản không hợp lệ hoặc thiếu Bearer token" },
+          "409": { "description": "Số điện thoại không khả dụng" }
+        }
+      }
+    }
+  },
+  "components": { "securitySchemes": { "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" } } }
+}

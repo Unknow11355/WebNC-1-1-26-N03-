@@ -5,6 +5,20 @@
   --green: #1b7f4d;
   --line: #dce6df;
 }
+#scan-video {
+  width: 100%;
+  max-height: 320px;
+  object-fit: contain;
+  background: #162c20;
+  border-radius: 10px;
+}
+#schedule-result,
+.table-wrap {
+  min-width: 0;
+}
+#schedule-result table {
+  min-width: 680px;
+}
 * {
   box-sizing: border-box;
 }
