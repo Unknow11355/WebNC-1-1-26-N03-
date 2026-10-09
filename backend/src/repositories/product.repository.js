@@ -12,7 +12,20 @@ export function createProductRepository(db) {
   }
 
   return {
-    async list({ limit, offset, q = null, categoryId = null }, executor = db) {
+    async list(
+      {
+        limit,
+        offset,
+        q = null,
+        categoryId = null,
+        minPrice = null,
+        maxPrice = null,
+        inStock = null,
+        sort = 'product_id',
+        order = 'asc',
+      },
+      executor = db,
+    ) {
       const conditions = ['p.status = ?'];
       const params = ['active'];
       if (q) {
@@ -23,12 +36,33 @@ export function createProductRepository(db) {
         conditions.push('p.category_id = ?');
         params.push(categoryId);
       }
+      if (minPrice !== null) {
+        conditions.push('p.price >= ?');
+        params.push(minPrice);
+      }
+      if (maxPrice !== null) {
+        conditions.push('p.price <= ?');
+        params.push(maxPrice);
+      }
+      if (inStock !== null) {
+        conditions.push(inStock ? 'p.stock > 0' : 'p.stock = 0');
+      }
       const where = conditions.join(' AND ');
+      const columnMap = {
+        product_id: 'p.product_id',
+        product_name: 'p.product_name',
+        price: 'p.price',
+        stock: 'p.stock',
+      };
+      const direction = order === 'desc' ? 'DESC' : 'ASC';
+      const orderBy = `${columnMap[sort]} ${direction}${sort === 'product_id' ? '' : `, p.product_id ${direction}`}`;
       const [rows] = await executor.execute(
         `SELECT p.product_id, p.product_name, p.barcode, p.price, p.unit,
                 p.stock, p.category_id, p.image_url
-         FROM products p WHERE ${where}
-         ORDER BY p.product_id ASC LIMIT ? OFFSET ?`,
+         FROM products p
+         WHERE ${where}
+         ORDER BY ${orderBy}
+         LIMIT ? OFFSET ?`,
         [...params, String(limit), String(offset)],
       );
       const [counts] = await executor.execute(

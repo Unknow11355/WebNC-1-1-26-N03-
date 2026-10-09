@@ -12,12 +12,13 @@ export function createInventoryController(service) {
       res.status(201).json({ success: true, data: await service.create(req.body) });
     },
     async update(req, res) {
-      res
-        .status(200)
-        .json({ success: true, data: await service.update(req.params.inventoryItemId, req.body) });
+      res.status(200).json({
+        success: true,
+        data: await service.update(req.params.inventoryItemId, req.body),
+      });
     },
     async remove(req, res) {
-      await service.remove(req.params.inventoryItemId);
+      await service.remove(req.params.inventoryItemId, { ...req.auth, requestId: req.traceId });
       res.status(204).send();
     },
     async logs(req, res) {
