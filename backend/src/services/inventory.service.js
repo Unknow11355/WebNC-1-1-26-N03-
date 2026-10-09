@@ -21,7 +21,7 @@ function positive(value, field, allowZero = false, integer = false) {
   return parsed;
 }
 
-function pagination(query) {
+function pagination(query = {}) {
   const page = Number(query.page ?? 1);
   const limit = Number(query.limit ?? 20);
   if (
@@ -68,7 +68,12 @@ function normalizeItem(input, current = {}) {
   };
 }
 
-export function createInventoryService({ repository, productRepository, transactionManager }) {
+export function createInventoryService({
+  repository,
+  productRepository,
+  transactionManager,
+  auditRepository = null,
+}) {
   if (!repository || !productRepository || !transactionManager) {
     throw new TypeError('Inventory service requires repositories and transaction manager');
   }
@@ -113,11 +118,29 @@ export function createInventoryService({ repository, productRepository, transact
         throw new AppError(400, 'VALIDATION_ERROR', 'status không hợp lệ');
       return repository.update(inventoryId, data);
     },
-    async remove(rawId) {
+    async remove(rawId, auth = null) {
       const inventoryId = id(rawId, 'inventory_item_id');
-      const current = await repository.findById(inventoryId);
-      if (!current) throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy mặt hàng kho');
-      await repository.softDelete(inventoryId);
+      const work = async (connection) => {
+        const current = await repository.findById(inventoryId, connection ?? undefined);
+        if (!current) throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy mặt hàng kho');
+        const affected = await repository.softDelete(inventoryId, connection ?? undefined);
+        if (affected !== 1) throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy mặt hàng kho');
+        if (auditRepository) {
+          await auditRepository.create(
+            {
+              actorId: auth?.userId ?? null,
+              action: 'DATA_DELETED',
+              entityType: 'inventory_item',
+              entityId: inventoryId,
+              outcome: 'SUCCESS',
+              requestId: auth?.requestId ?? null,
+              metadata: { soft_delete: true, previous_status: current.status },
+            },
+            connection ?? undefined,
+          );
+        }
+      };
+      await transactionManager.run(work);
     },
     async listLogs(query) {
       const p = pagination(query);
