@@ -10,7 +10,6 @@ import { createInventoryRoutes } from './inventory.routes.js';
 import { createNotificationRoutes } from './notification.routes.js';
 import { createOrderRoutes } from './order.routes.js';
 import { createPosRoutes } from './pos.routes.js';
-import { createReportRoutes } from './report.routes.js';
 import { createUserRoutes } from './user.routes.js';
 import { createVoucherRoutes } from './voucher.routes.js';
 
@@ -28,7 +27,6 @@ export function createRoutes({
   notificationService,
   orderService,
   posService,
-  reportService,
   userService,
   voucherService,
   barcodeService,
