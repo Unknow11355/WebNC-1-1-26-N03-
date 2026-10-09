@@ -18,6 +18,7 @@
     "measure:indexes": "node scripts/measure-buoi5-indexes.js"
   },
   "dependencies": {
+    "axios": "^1.20.0",
     "bcryptjs": "3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^18.0.3",
