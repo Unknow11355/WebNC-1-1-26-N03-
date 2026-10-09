@@ -3,46 +3,100 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <meta
-      name="description"
-      content="Siêu thị mini — tra cứu sản phẩm, đặt hàng và quản lý vận hành siêu thị."
-    />
+    <meta name="description" content="Siêu thị mini — tra cứu sản phẩm, đặt hàng và quản lý vận hành siêu thị." />
     <title>Siêu thị mini</title>
-    <link rel="stylesheet" href="/style.css" />
-    <script type="module" src="/app.js"></script>
+    <link rel="stylesheet" href="style.css" />
+    <script type="module" src="app.js"></script>
+    <style>
+      /* Bổ sung CSS nhỏ cho chuông thông báo và Lưới sản phẩm */
+      .header-actions { margin-left: auto; display: flex; align-items: center; gap: 20px; padding-right: 20px; }
+      .noti-wrapper { position: relative; }
+      .noti-btn { background: none; border: none; font-size: 24px; cursor: pointer; position: relative; }
+      .noti-badge { position: absolute; top: -5px; right: -5px; background: red; color: white; border-radius: 50%; padding: 2px 6px; font-size: 12px; font-weight: bold; }
+      .noti-dropdown { display: none; position: absolute; right: 0; top: 40px; background: white; border: 1px solid #ccc; width: 250px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); border-radius: 5px; z-index: 100; text-align: left; }
+      .noti-dropdown ul { list-style: none; padding: 0; margin: 0; }
+      .noti-dropdown li { border-bottom: 1px solid #eee; }
+      .noti-dropdown a { display: block; padding: 12px; text-decoration: none; color: #333; font-size: 14px; }
+      .noti-dropdown a:hover { background: #f8f9fa; }
+
+      .product-grid { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 20px; }
+      .product-card { border: 1px solid #ddd; padding: 15px; border-radius: 8px; width: 220px; text-align: center; background: #fff; }
+      .product-card img { width: 100%; height: 160px; object-fit: cover; border-radius: 4px; }
+      .buy-btn { background: #28a745; color: white; border: none; padding: 10px; cursor: pointer; border-radius: 4px; width: 100%; font-weight: bold; margin-top: 10px; }
+      .buy-btn:focus { outline: 3px solid #007bff; /* Viền xanh nổi bật khi dùng phím Tab */ }
+    </style>
   </head>
   <body>
     <a class="skip" href="#main">Đến nội dung chính</a>
+
     <header>
-      <a class="brand" href="#shop"
-        ><span class="logo">S</span
-        ><span>Siêu thị mini<small>Tươi ngon mỗi ngày</small></span></a
-      >
-      <div id="identity"></div>
+      <a class="brand" href="#shop">
+        <span class="logo">S</span><span>Siêu thị mini<small>Tươi ngon mỗi ngày</small></span>
+      </a>
+
+      <!-- BỔ SUNG K9: HỘP THÔNG BÁO TRÊN THANH ĐIỀU HƯỚNG -->
+      <div class="header-actions">
+        <div class="noti-wrapper">
+          <button id="noti-btn" class="noti-btn" aria-label="Mở hộp thông báo" aria-expanded="false">
+            🔔<span class="noti-badge">2</span>
+          </button>
+          <div id="noti-dropdown" class="noti-dropdown" role="menu">
+            <ul>
+              <li role="menuitem"><a href="#">📦 Đơn hàng #123 đã duyệt</a></li>
+              <li role="menuitem"><a href="#">✨ Sản phẩm mới: Táo New Zealand</a></li>
+            </ul>
+          </div>
+        </div>
+        <div id="identity"></div>
+      </div>
     </header>
+
     <div class="layout">
       <aside>
         <p class="eyebrow">KHÔNG GIAN CỦA BẠN</p>
         <nav id="nav" aria-label="Điều hướng chính"></nav>
         <div class="side-note">Mua sắm thuận tiện.<br />Vận hành rõ ràng.</div>
       </aside>
-      <main id="main" tabindex="-1"></main>
+
+      <!-- BỔ SUNG GIAO DIỆN CHUẨN SEMANTIC HTML VÀ ACCESSIBILITY -->
+      <main id="main" tabindex="-1">
+        <section aria-labelledby="product-list-title" style="padding: 20px;">
+          <h1 id="product-list-title">Danh sách sản phẩm</h1>
+
+          <div class="product-grid">
+            <!-- Thẻ article chuẩn Semantic -->
+            <article class="product-card">
+              <!-- Bắt buộc có thuộc tính alt -->
+              <img src="https://via.placeholder.com/200" alt="Hình minh họa Táo đỏ tươi New Zealand">
+              <h2>Táo đỏ New Zealand</h2>
+              <p>90.000 VNĐ / kg</p>
+              <!-- Thuộc tính tabindex="0" để bắt được phím Tab -->
+              <button class="buy-btn" tabindex="0" aria-label="Thêm Táo đỏ vào giỏ hàng">Thêm vào giỏ</button>
+            </article>
+
+            <article class="product-card">
+              <img src="https://via.placeholder.com/200" alt="Hình minh họa Hộp sữa tươi Vinamilk 1 lít">
+              <h2>Sữa tươi Vinamilk</h2>
+              <p>35.000 VNĐ / hộp</p>
+              <button class="buy-btn" tabindex="0" aria-label="Thêm Sữa tươi vào giỏ hàng">Thêm vào giỏ</button>
+            </article>
+          </div>
+        </section>
+      </main>
     </div>
+
     <footer>Dữ liệu mô phỏng phục vụ học tập · Nhóm 03 · CSE702051</footer>
-    <div id="notice" role="status" aria-live="polite"></div>
-    <dialog id="dialog" aria-labelledby="dialog-title">
-      <div class="dialog-head">
-        <h2 id="dialog-title"></h2>
-        <button
-          id="close-dialog"
-          type="button"
-          class="secondary"
-          aria-label="Đóng"
-        >
-          Đóng
-        </button>
-      </div>
-      <div id="dialog-content"></div>
-    </dialog>
+
+    <!-- Script nhỏ để bật/tắt menu thông báo -->
+    <script>
+      const notiBtn = document.getElementById('noti-btn');
+      const notiDropdown = document.getElementById('noti-dropdown');
+
+      notiBtn.addEventListener('click', () => {
+        const isExpanded = notiBtn.getAttribute('aria-expanded') === 'true';
+        notiBtn.setAttribute('aria-expanded', !isExpanded);
+        notiDropdown.style.display = isExpanded ? 'none' : 'block';
+      });
+    </script>
   </body>
 </html>
