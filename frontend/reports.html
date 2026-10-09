@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Báo Cáo Quản Trị - Buổi 7</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { padding: 20px; font-family: sans-serif; }
+        /* CSS cho thanh Menu */
+        nav { margin-bottom: 20px; background: #343a40; padding: 15px; border-radius: 5px; display: flex; gap: 20px; align-items: center; }
+        nav a { color: white; text-decoration: none; font-weight: bold; }
+        nav a:hover { text-decoration: underline; }
+        /* CSS cho phần Báo cáo */
+        .filter-bar { margin-bottom: 20px; padding: 15px; background: #f0f0f0; border-radius: 5px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #007bff; color: white; }
+        button { padding: 8px 15px; margin-right: 10px; cursor: pointer; }
+        .export-btn { background-color: #28a745; color: white; border: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <!-- ĐÂY CHÍNH LÀ THANH MENU ĐIỀU HƯỚNG -->
+    <nav>
+        <a href="reports.html">📊 Báo Cáo & Xuất CSV</a>
+        <a href="audit.html">📝 Nhật Ký Hoạt Động</a>
+        <a href="upload.html">☁️ Tải Ảnh (Bảo Mật)</a>
+    </nav>
+
+    <h2>Hệ Thống Báo Cáo - Admin</h2>
+
+    <div class="filter-bar">
+        <label>Từ ngày:</label> <input type="date" id="fromDate">
+        <label>Đến ngày:</label> <input type="date" id="toDate">
+        <button onclick="loadReport('revenue')">1. Báo cáo Doanh Thu</button>
+        <button onclick="loadReport('products')">2. Báo cáo Sản Phẩm</button>
+        <button onclick="loadReport('employees')">3. Báo cáo Nhân Viên</button>
+        <button class="export-btn" onclick="handleExport()">Xuất CSV An Toàn</button>
+    </div>
+
+    <h3 id="reportTitle">Chưa chọn báo cáo</h3>
+    <table id="reportTable">
+        <thead id="tableHead"></thead>
+        <tbody id="tableBody">
+            <tr><td colspan="100%">Vui lòng chọn loại báo cáo và khoảng thời gian.</td></tr>
+        </tbody>
+    </table>
+
+    <script src="reports.js"></script>
+</body>
+</html>
