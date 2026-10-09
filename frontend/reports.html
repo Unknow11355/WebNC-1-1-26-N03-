@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Báo Cáo Quản Trị - Buổi 7</title>
     <link rel="stylesheet" href="style.css">
+
+    <!-- [BỔ SUNG]: Tải thư viện Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
         body { padding: 20px; font-family: sans-serif; }
         /* CSS cho thanh Menu */
@@ -37,6 +41,11 @@
         <button onclick="loadReport('products')">2. Báo cáo Sản Phẩm</button>
         <button onclick="loadReport('employees')">3. Báo cáo Nhân Viên</button>
         <button class="export-btn" onclick="handleExport()">Xuất CSV An Toàn</button>
+    </div>
+
+    <!-- [BỔ SUNG]: Khung chứa để vẽ biểu đồ -->
+    <div class="chart-container" style="position: relative; height: 400px; width: 100%; margin: 20px 0;">
+        <canvas id="myReportChart"></canvas>
     </div>
 
     <h3 id="reportTitle">Chưa chọn báo cáo</h3>
