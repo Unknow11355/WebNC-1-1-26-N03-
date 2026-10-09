@@ -1,5 +1,9 @@
 # WebNC-1-1-26-N03-
 
+## Chạy trên GitHub Codespaces
+
+Xem [hướng dẫn Codespaces](docs/codespaces.md). Repo có cấu hình Node.js + database tự khởi tạo; mở Code → Codespaces → Create codespace on main, chờ setup rồi chạy backend/frontend và mở cổng 5173 ở chế độ Private.
+
 ## Giao diện web cho các chức năng đã có
 
 Xem [hướng dẫn frontend](frontend/README.md). Chạy backend theo hướng dẫn bên dưới, sau đó mở terminal khác: `cd frontend` và `npm start`; truy cập `http://127.0.0.1:5173`. Frontend giữ luồng nghiệp vụ source tham khảo và chỉ nối API đã có; không thay backend, không đánh dấu các chức năng Buổi 7 chưa triển khai là đã hoàn thành.
