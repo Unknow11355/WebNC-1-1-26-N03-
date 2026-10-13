@@ -9,6 +9,9 @@ const files = new Map([
   ["/staff-tools.js", ["staff-tools.js", "text/javascript"]],
   ["/shifts.js", ["shifts.js", "text/javascript"]],
   ["/style.css", ["style.css", "text/css"]],
+  // Bổ sung 2 dòng dưới đây để mở khóa trang Báo cáo
+  ["/reports.html", ["reports.html", "text/html"]],
+  ["/reports.js", ["reports.js", "text/javascript"]],
 ]);
 for (const name of await readdir(
   new URL("./assets/images/", import.meta.url),

@@ -13,6 +13,7 @@ import { createPosRoutes } from './pos.routes.js';
 import { createUserRoutes } from './user.routes.js';
 import { createVoucherRoutes } from './voucher.routes.js';
 import uploadRoutes from './upload.routes.js';
+import { createReportRoutes } from './report.routes.js';
 
 function hasAuth(requireAuth, requireRole) {
   return typeof requireAuth === 'function' && typeof requireRole === 'function';
@@ -33,6 +34,7 @@ export function createRoutes({
   barcodeService,
   scheduleService,
   shiftService,
+  reportService,
   requireAuth,
   requireRole,
 } = {}) {
