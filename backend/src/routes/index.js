@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { createReportRoutes } from './report.routes.js';
 import { createShiftRoutes } from './shift.routes.js';
 import { createStaffToolsRoutes } from './staff-tools.routes.js';
 import { createProductController } from '../controllers/product.controller.js';
@@ -12,6 +13,7 @@ import { createOrderRoutes } from './order.routes.js';
 import { createPosRoutes } from './pos.routes.js';
 import { createUserRoutes } from './user.routes.js';
 import { createVoucherRoutes } from './voucher.routes.js';
+import { createLoyaltyRoutes } from './loyalty.routes.js';
 import uploadRoutes from './upload.routes.js';
 
 function hasAuth(requireAuth, requireRole) {
@@ -28,8 +30,10 @@ export function createRoutes({
   notificationService,
   orderService,
   posService,
+  reportService,
   userService,
   voucherService,
+  loyaltyService,
   barcodeService,
   scheduleService,
   shiftService,
@@ -99,6 +103,13 @@ export function createRoutes({
       createAuditRoutes({ service: auditService, requireAuth, requireRole }),
     );
   }
+  if (loyaltyService && hasAuth(requireAuth, requireRole)) {
+    router.use(
+      '/members',
+      createLoyaltyRoutes({ service: loyaltyService, requireAuth, requireRole }),
+    );
+  }
+
   if (voucherService && hasAuth(requireAuth, requireRole)) {
     router.use(
       '/vouchers',

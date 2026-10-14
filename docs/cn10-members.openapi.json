@@ -1,0 +1,62 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "CN10 Members & Loyalty API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/v1/members/me": {
+      "get": {
+        "summary": "Customer xem thành viên của chính mình",
+        "responses": {
+          "200": {
+            "description": "Member"
+          },
+          "401": { "description": "Unauthorized" },
+          "403": { "description": "Forbidden" }
+        }
+      }
+    },
+    "/api/v1/members/search": {
+      "get": {
+        "summary": "Employee/Admin tra khách",
+        "parameters": [
+          { "name": "q", "in": "query", "schema": { "type": "string", "maxLength": 100 } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "minimum": 1, "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 20, "default": 20 } }
+        ],
+        "responses": {
+          "200": { "description": "Paged customer list" },
+          "401": { "description": "Unauthorized" },
+          "403": { "description": "Forbidden" }
+        }
+      }
+    },
+    "/api/v1/members/{customerId}": {
+      "get": {
+        "summary": "Xem thông tin khách hàng",
+        "parameters": [
+          { "name": "customerId", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 } }
+        ],
+        "responses": {
+          "200": { "description": "Member" },
+          "403": { "description": "Forbidden" },
+          "404": { "description": "Not found" }
+        }
+      }
+    },
+    "/api/v1/members/{customerId}/points/history": {
+      "get": {
+        "summary": "Lịch sử điểm",
+        "parameters": [
+          { "name": "customerId", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "minimum": 1, "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 20, "default": 20 } }
+        ],
+        "responses": {
+          "200": { "description": "Paged loyalty history" }
+        }
+      }
+    }
+  }
+}
