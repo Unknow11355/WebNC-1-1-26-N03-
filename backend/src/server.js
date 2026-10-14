@@ -21,6 +21,7 @@ import { createReportRepository } from './repositories/report.repository.js';
 import { createSessionRepository } from './repositories/session.repository.js';
 import { createUserRepository } from './repositories/user.repository.js';
 import { createVoucherRepository } from './repositories/voucher.repository.js';
+import { createLoyaltyRepository } from './repositories/loyalty.repository.js';
 import { createAuthService } from './services/auth.service.js';
 import { createAuditService } from './services/audit.service.js';
 import { createCartService } from './services/cart.service.js';
@@ -32,6 +33,7 @@ import { createPosService } from './services/pos.service.js';
 import { createReportService } from './services/report.service.js';
 import { createUserService } from './services/user.service.js';
 import { createVoucherService } from './services/voucher.service.js';
+import { createLoyaltyService } from './services/loyalty.service.js';
 
 if (!env.jwtSecret || env.jwtSecret.length < 16)
   throw new Error('JWT_SECRET is required and must be at least 16 characters');
@@ -44,6 +46,7 @@ const cartRepository = createCartRepository(pool);
 const categoryRepository = createCategoryRepository(pool);
 const inventoryRepository = createInventoryRepository(pool);
 const voucherRepository = createVoucherRepository(pool);
+const loyaltyRepository = createLoyaltyRepository(pool);
 const orderRepository = createOrderRepository(pool);
 const posRepository = createPosRepository(pool);
 const auditRepository = createAuditRepository(pool);
@@ -72,14 +75,20 @@ const inventoryService = createInventoryService({
   auditRepository,
 });
 const voucherService = createVoucherService(voucherRepository);
+const loyaltyService = createLoyaltyService({ repository: loyaltyRepository });
 const notificationService = createNotificationService(notificationRepository);
 const orderService = createOrderService({
   orderRepository,
   voucherRepository,
+  loyaltyService,
   transactionManager,
   notificationRepository,
 });
-const posService = createPosService({ repository: posRepository, transactionManager });
+const posService = createPosService({
+  repository: posRepository,
+  loyaltyService,
+  transactionManager,
+});
 const reportService = createReportService(reportRepository);
 const scheduleService = createScheduleService(createScheduleRepository(pool));
 const barcodeService = createBarcodeService(createBarcodeRepository(pool));
@@ -105,6 +114,7 @@ const app = createApp({
   reportService,
   userService,
   voucherService,
+  loyaltyService,
   requireAuth,
   requireRole,
   corsOrigins: env.corsOrigins,
