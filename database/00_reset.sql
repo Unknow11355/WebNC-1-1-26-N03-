@@ -1,11 +1,14 @@
--- RESET DATABASE mini_supermarket
--- Xoa cac bang theo thu tu tu bang con -> bang cha
--- Co the chay truc tiep trong phpMyAdmin khi dang chon database mini_supermarket.
-
 USE mini_supermarket;
 
+-- Bắt buộc phải chạy cùng lúc trong 1 ô SQL
 SET FOREIGN_KEY_CHECKS = 0;
 
+-- 3 bảng mới
+DROP TABLE IF EXISTS audit_logs;
+DROP TABLE IF EXISTS sale_requests;
+DROP TABLE IF EXISTS user_sessions;
+
+-- Các bảng từ Buổi 1-4
 DROP TABLE IF EXISTS notifications;
 DROP TABLE IF EXISTS user_vouchers;
 DROP TABLE IF EXISTS reviews;

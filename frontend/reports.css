@@ -1,0 +1,14 @@
+body { padding: 20px; font-family: sans-serif; }
+
+/* CSS cho thanh Menu */
+nav { margin-bottom: 20px; background: #343a40; padding: 15px; border-radius: 5px; display: flex; gap: 20px; align-items: center; }
+nav a { color: white; text-decoration: none; font-weight: bold; }
+nav a:hover { text-decoration: underline; }
+
+/* CSS cho phần Báo cáo */
+.filter-bar { margin-bottom: 20px; padding: 15px; background: #f0f0f0; border-radius: 5px; }
+table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+th { background-color: #007bff; color: white; }
+button { padding: 8px 15px; margin-right: 10px; cursor: pointer; }
+.export-btn { background-color: #28a745; color: white; border: none; font-weight: bold; }

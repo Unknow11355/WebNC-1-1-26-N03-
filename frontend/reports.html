@@ -4,28 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Báo Cáo Quản Trị - Buổi 7</title>
+    <!-- Nhúng file CSS dùng chung của hệ thống -->
     <link rel="stylesheet" href="style.css">
+    <!-- Nhúng file CSS riêng của trang báo cáo vừa tạo -->
+    <link rel="stylesheet" href="reports.css">
 
-    <!-- [BỔ SUNG]: Tải thư viện Chart.js -->
+    <!-- Tải thư viện Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <style>
-        body { padding: 20px; font-family: sans-serif; }
-        /* CSS cho thanh Menu */
-        nav { margin-bottom: 20px; background: #343a40; padding: 15px; border-radius: 5px; display: flex; gap: 20px; align-items: center; }
-        nav a { color: white; text-decoration: none; font-weight: bold; }
-        nav a:hover { text-decoration: underline; }
-        /* CSS cho phần Báo cáo */
-        .filter-bar { margin-bottom: 20px; padding: 15px; background: #f0f0f0; border-radius: 5px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-        th { background-color: #007bff; color: white; }
-        button { padding: 8px 15px; margin-right: 10px; cursor: pointer; }
-        .export-btn { background-color: #28a745; color: white; border: none; font-weight: bold; }
-    </style>
 </head>
 <body>
-    <!-- ĐÂY CHÍNH LÀ THANH MENU ĐIỀU HƯỚNG -->
+    <!-- THANH MENU ĐIỀU HƯỚNG -->
     <nav>
         <a href="reports.html">📊 Báo Cáo & Xuất CSV</a>
         <a href="audit.html">📝 Nhật Ký Hoạt Động</a>
@@ -37,14 +25,14 @@
     <div class="filter-bar">
         <label>Từ ngày:</label> <input type="date" id="fromDate">
         <label>Đến ngày:</label> <input type="date" id="toDate">
-        <button onclick="loadReport('revenue')">1. Báo cáo Doanh Thu</button>
-        <button onclick="loadReport('products')">2. Báo cáo Sản Phẩm</button>
-        <button onclick="loadReport('employees')">3. Báo cáo Nhân Viên</button>
-        <button class="export-btn" onclick="handleExport()">Xuất CSV An Toàn</button>
+        <button id="btn-revenue" data-action="revenue">1. Báo cáo Doanh Thu</button>
+        <button id="btn-products" data-action="products">2. Báo cáo Sản Phẩm</button>
+        <button id="btn-employees" data-action="employees">3. Báo cáo Nhân Viên</button>
+        <button class="export-btn" id="btn-export">Xuất CSV An Toàn</button>
     </div>
 
-    <!-- [BỔ SUNG]: Khung chứa để vẽ biểu đồ -->
-    <div class="chart-container" style="position: relative; height: 400px; width: 100%; margin: 20px 0;">
+    <!-- Khung chứa để vẽ biểu đồ -->
+    <div class="chart-container">
         <canvas id="myReportChart"></canvas>
     </div>
 
@@ -56,6 +44,6 @@
         </tbody>
     </table>
 
-    <script src="reports.js"></script>
+    <script type="module" src="reports.js"></script>
 </body>
 </html>

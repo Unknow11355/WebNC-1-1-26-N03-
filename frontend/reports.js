@@ -137,3 +137,28 @@ function handleExport() {
     link.click();
     document.body.removeChild(link);
 }
+
+// ==========================================
+// PHẦN 3: GẮN SỰ KIỆN CHO CÁC NÚT (CSP Compliant)
+// ==========================================
+document.addEventListener('DOMContentLoaded', () => {
+    const btnRevenue = document.getElementById('btn-revenue');
+    if (btnRevenue) {
+        btnRevenue.addEventListener('click', () => loadReport('revenue'));
+    }
+
+    const btnProducts = document.getElementById('btn-products');
+    if (btnProducts) {
+        btnProducts.addEventListener('click', () => loadReport('products'));
+    }
+
+    const btnEmployees = document.getElementById('btn-employees');
+    if (btnEmployees) {
+        btnEmployees.addEventListener('click', () => loadReport('employees'));
+    }
+
+    const btnExport = document.getElementById('btn-export');
+    if (btnExport) {
+        btnExport.addEventListener('click', handleExport);
+    }
+});
