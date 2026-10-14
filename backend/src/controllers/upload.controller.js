@@ -16,10 +16,10 @@ export const uploadProductImage = async (req, res, next) => {
       if (metadata.width > 5000 || metadata.height > 5000) {
          throw new Error('Kích thước ảnh quá lớn (vượt quá 5000px)');
       }
-    } catch (error) {
-      // Nếu sharp không đọc được -> Đây là file giả mạo (script đổi đuôi)!
-      // Xóa file rác đi và trả về lỗi 415
-      await fs.unlink(filePath).catch(() => {});
+    // Thêm dấu gạch dưới trước chữ error
+      } catch (_error) {
+        await fs.unlink(filePath).catch(() => {});
+      // ...
       return res.status(415).json({
         success: false,
         message: 'File không đúng định dạng ảnh hoặc bị hỏng (Phát hiện giả mạo)'
