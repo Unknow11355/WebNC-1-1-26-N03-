@@ -1,0 +1,16 @@
+{
+  "name": "Nhom03 - Web va database",
+  "dockerComposeFile": "compose.yaml",
+  "service": "app",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  "remoteUser": "node",
+  "shutdownAction": "stopCompose",
+  "forwardPorts": [5173],
+  "portsAttributes": {
+    "5173": { "label": "Web sieu thi", "onAutoForward": "notify" },
+    "3000": { "onAutoForward": "ignore" },
+    "3306": { "onAutoForward": "ignore" }
+  },
+  "postCreateCommand": "cd backend && npm ci && node scripts/setup-codespaces.js",
+  "waitFor": "postCreateCommand"
+}

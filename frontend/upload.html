@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Ảnh - Admin</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { padding: 20px; font-family: sans-serif; }
+        nav { margin-bottom: 20px; background: #343a40; padding: 15px; border-radius: 5px; }
+        nav a { color: white; text-decoration: none; margin-right: 20px; font-weight: bold; }
+        nav a:hover { text-decoration: underline; }
+        .upload-box { border: 2px dashed #007bff; padding: 30px; border-radius: 10px; text-align: center; max-width: 500px; background: #f8f9fa; }
+        #preview { max-width: 100%; margin-top: 20px; display: none; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        button { margin-top: 15px; padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer; font-weight: bold; border-radius: 5px; }
+        button:hover { background: #0056b3; }
+        .status-msg { margin-top: 15px; font-weight: bold; }
+        .error { color: #dc3545; }
+        .success { color: #28a745; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="reports.html">📊 Báo Cáo & Xuất CSV</a>
+        <a href="audit.html">📝 Nhật Ký Hoạt Động</a>
+        <a href="upload.html">☁️ Tải Ảnh (Bảo Mật)</a>
+    </nav>
+
+    <h2>Quản lý hình ảnh sản phẩm</h2>
+
+    <div class="upload-box">
+        <p>Chọn ảnh sản phẩm (Chỉ nhận .jpg, .jpeg, .png, .webp)</p>
+        <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.webp">
+        <br>
+        <button onclick="handleUpload()">Tải Ảnh Lên</button>
+        <div id="statusMessage" class="status-msg"></div>
+        <img id="preview" alt="Bản xem trước ảnh tải lên">
+    </div>
+
+    <script>
+        async function handleUpload() {
+            const fileInput = document.getElementById('fileInput');
+            const statusMsg = document.getElementById('statusMessage');
+            const preview = document.getElementById('preview');
+
+            if (fileInput.files.length === 0) {
+                statusMsg.className = 'status-msg error';
+                statusMsg.innerText = 'Vui lòng chọn một file!';
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+
+            statusMsg.className = 'status-msg';
+            statusMsg.innerText = 'Đang tải lên và quét bảo mật...';
+            preview.style.display = 'none';
+
+            try {
+                // Đảm bảo Backend (cổng 3000) đang chạy trước khi test
+                const response = await fetch('http://localhost:3000/api/v1/uploads/product-image', {
+                    method: 'POST',
+                    // LƯU Ý: Thay token thực tế của bạn vào đây khi ghép nối
+                    headers: {
+                        'Authorization': 'Bearer TOKEN_CUA_BAN_O_DAY'
+                    },
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.message || 'Lỗi server');
+                }
+
+                statusMsg.className = 'status-msg success';
+                statusMsg.innerText = 'Tải lên an toàn thành công!';
+
+                // Hiển thị ảnh (nếu server trả về URL)
+                if (result.imageUrl) {
+                    preview.src = result.imageUrl;
+                    preview.style.display = 'block';
+                }
+            } catch (error) {
+                statusMsg.className = 'status-msg error';
+                statusMsg.innerText = 'LỖI: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>
