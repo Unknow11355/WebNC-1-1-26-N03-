@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { createReportRoutes } from './report.routes.js';
 import { createShiftRoutes } from './shift.routes.js';
 import { createStaffToolsRoutes } from './staff-tools.routes.js';
 import { createProductController } from '../controllers/product.controller.js';
@@ -29,6 +30,7 @@ export function createRoutes({
   notificationService,
   orderService,
   posService,
+  reportService,
   userService,
   voucherService,
   loyaltyService,
