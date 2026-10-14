@@ -18,6 +18,7 @@ function pagination(query) {
 export function createOrderService({
   orderRepository,
   voucherRepository,
+  loyaltyService = null,
   transactionManager,
   notificationRepository = null,
 }) {
@@ -122,6 +123,23 @@ export function createOrderService({
         }
         const voucherValue = input?.voucher_id ?? input?.voucher_code ?? null;
         const { voucher, discountAmount } = await getVoucher(voucherValue, totalAmount, connection);
+        const pointsUsed = Number(input?.points_used ?? 0);
+        if (!Number.isSafeInteger(pointsUsed) || pointsUsed < 0)
+          throw new AppError(400, 'VALIDATION_ERROR', 'points_used phải là số nguyên không âm');
+        const eligibleAmount = totalAmount - discountAmount;
+        let pointsPreview = {
+          points_used: 0,
+          points_discount: 0,
+          final_amount: eligibleAmount,
+        };
+        if (pointsUsed > 0) {
+          if (!loyaltyService)
+            throw new AppError(500, 'INTERNAL_ERROR', 'CN10 loyalty service chưa được cấu hình');
+          pointsPreview = loyaltyService.previewRedemption({
+            pointsUsed,
+            eligibleAmount,
+          });
+        }
         const order = await orderRepository.createOrder(
           {
             customerId,
@@ -129,13 +147,23 @@ export function createOrderService({
             deliveryMethod,
             totalAmount,
             discountAmount,
-            finalAmount: totalAmount - discountAmount,
+            finalAmount: pointsPreview.final_amount,
             paymentMethod,
             shippingAddress: deliveryMethod === 'delivery' ? shippingAddress : null,
             note,
           },
           connection,
         );
+        if (pointsPreview.points_used > 0) {
+          await loyaltyService.redeemForOrder({
+            customerId,
+            orderId: order.order_id,
+            pointsUsed: pointsPreview.points_used,
+            eligibleAmount,
+            executor: connection,
+          });
+        }
+
         for (const item of normalizedItems) {
           await orderRepository.createOrderItem(
             {
@@ -255,6 +283,13 @@ export function createOrderService({
             connection,
           );
         if (order.voucher_id) await voucherRepository.decrementUsed(order.voucher_id, connection);
+        if (loyaltyService) {
+          await loyaltyService.releaseForOrder({
+            customerId: order.customer_id,
+            orderId: order.order_id,
+            executor: connection,
+          });
+        }
         const updated = await orderRepository.updateStatus(
           order.order_id,
           {
@@ -305,11 +340,21 @@ export function createOrderService({
         if (order.payment_status === 'paid') return order;
         const paidAt = new Date();
         await orderRepository.updatePaymentStatus(order.order_id, 'paid', paidAt, connection);
-        return orderRepository.updateStatus(
+        await orderRepository.updateStatus(
           order.order_id,
           { paymentStatus: 'paid', paidAt },
           connection,
         );
+        if (loyaltyService && order.customer_id) {
+          await loyaltyService.earnForPaidOrder({
+            customerId: order.customer_id,
+            orderId: order.order_id,
+            finalAmount: order.final_amount,
+            paymentStatus: 'paid',
+            executor: connection,
+          });
+        }
+        return orderRepository.findById(order.order_id, connection);
       });
     },
   };

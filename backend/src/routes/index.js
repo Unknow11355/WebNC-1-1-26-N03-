@@ -13,6 +13,7 @@ import { createPosRoutes } from './pos.routes.js';
 import { createReportRoutes } from './report.routes.js';
 import { createUserRoutes } from './user.routes.js';
 import { createVoucherRoutes } from './voucher.routes.js';
+import { createLoyaltyRoutes } from './loyalty.routes.js';
 
 function hasAuth(requireAuth, requireRole) {
   return typeof requireAuth === 'function' && typeof requireRole === 'function';
@@ -31,6 +32,7 @@ export function createRoutes({
   reportService,
   userService,
   voucherService,
+  loyaltyService,
   barcodeService,
   scheduleService,
   shiftService,
@@ -100,6 +102,13 @@ export function createRoutes({
       createAuditRoutes({ service: auditService, requireAuth, requireRole }),
     );
   }
+  if (loyaltyService && hasAuth(requireAuth, requireRole)) {
+    router.use(
+      '/members',
+      createLoyaltyRoutes({ service: loyaltyService, requireAuth, requireRole }),
+    );
+  }
+
   if (voucherService && hasAuth(requireAuth, requireRole)) {
     router.use(
       '/vouchers',
