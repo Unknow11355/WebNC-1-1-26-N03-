@@ -37,17 +37,16 @@ export function createPosRepository(db) {
     },
 
     async findCurrentShift(employeeId, executor = db) {
-      // Same lock as CN09: a sale and shift closure have an unambiguous order.
-      await executor.execute('SELECT user_id FROM users WHERE user_id=? FOR UPDATE', [employeeId]);
       const [rows] = await executor.execute(
         `SELECT shift_id
          FROM work_shifts
          WHERE employee_id = ?
-           AND status IN ('active','working','open')
-           AND TIMESTAMP(shift_date,start_time) <= UTC_TIMESTAMP() + INTERVAL 7 HOUR
-           AND end_time IS NULL
+           AND shift_date = CURRENT_DATE
+           AND status = 'active'
+           AND (start_time IS NULL OR start_time <= CURRENT_TIME)
+           AND (end_time IS NULL OR end_time >= CURRENT_TIME)
          ORDER BY start_time DESC, shift_id DESC
-         LIMIT 1 FOR UPDATE`,
+         LIMIT 1`,
         [employeeId],
       );
       return rows[0]?.shift_id ?? null;
