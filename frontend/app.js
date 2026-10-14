@@ -982,3 +982,32 @@ async function start() {
   await render();
 }
 start();
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. Tự động đóng hộp thông báo khi click ra ngoài
+    document.addEventListener('click', (event) => {
+        const notiWrapper = document.querySelector('.noti-wrapper');
+        // Kiểm tra nếu menu đang mở và vị trí click không nằm trong menu
+        if (notiWrapper && notiWrapper.hasAttribute('open') && !notiWrapper.contains(event.target)) {
+            notiWrapper.removeAttribute('open');
+        }
+    });
+
+    // 2. Thêm CSS cho chấm đỏ thông báo (nếu file style.css chưa có)
+    const style = document.createElement('style');
+    style.innerHTML = `
+        .noti-btn { position: relative; cursor: pointer; list-style: none; }
+        .noti-btn::-webkit-details-marker { display: none; } /* Ẩn mũi tên mặc định */
+        .noti-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: red;
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 2px 5px;
+            border-radius: 50%;
+        }
+    `;
+    document.head.appendChild(style);
+});
