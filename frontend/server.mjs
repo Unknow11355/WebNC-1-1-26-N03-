@@ -12,6 +12,14 @@ const files = new Map([
   // Bổ sung 2 dòng dưới đây để mở khóa trang Báo cáo
   ["/reports.html", ["reports.html", "text/html"]],
   ["/reports.js", ["reports.js", "text/javascript"]],
+  ["/reports.css", ["reports.css", "text/css"]],
+  ["/audit.html", ["audit.html", "text/html"]],
+  ["/upload.html", ["upload.html", "text/html"]],
+  ["/audit.css", ["audit.css", "text/css"]],
+  ["/audit.js", ["audit.js", "text/javascript"]],
+  // Các file của trang Upload
+  ["/upload.css", ["upload.css", "text/css"]],
+  ["/upload.js", ["upload.js", "text/javascript"]],
 ]);
 for (const name of await readdir(
   new URL("./assets/images/", import.meta.url),
@@ -28,7 +36,7 @@ const server = http.createServer(async (req, res) => {
   res.setHeader("Referrer-Policy", "same-origin");
   res.setHeader(
     "Content-Security-Policy",
-    "default-src 'self'; img-src 'self' https: http: data:; style-src 'self'; script-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
+    "default-src 'self'; img-src 'self' https: http: data:; style-src 'self'; script-src 'self' https://cdn.jsdelivr.net; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
   );
   let requestUrl;
   try {
