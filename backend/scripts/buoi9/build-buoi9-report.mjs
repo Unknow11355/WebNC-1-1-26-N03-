@@ -10,11 +10,13 @@ const outPath = resolve('docs/buoi9/vinh/hieu-nang.md');
 
 const before = await readJson(beforePath);
 const after = await readJson(afterPath);
-let cacheCheck = null;
-try {
-  cacheCheck = JSON.parse(await readFile(cachePath, 'utf8'));
-} catch {
-  cacheCheck = null;
+const cacheCheck = await readOptionalJson(cachePath);
+async function readOptionalJson(path) {
+  try {
+    return JSON.parse(await readFile(path, 'utf8'));
+  } catch {
+    return null;
+  }
 }
 
 const names = Object.keys(before.summary);
@@ -87,7 +89,10 @@ async function readJson(path) {
   try {
     return JSON.parse(await readFile(path, 'utf8'));
   } catch (error) {
-    throw new Error(`Chưa có đủ dữ liệu đo: ${path} (${error.message})`);
+    throw new Error(
+      `Chưa có đủ dữ liệu đo: ${path} (${error.message})`,
+      { cause: error },
+    );
   }
 }
 

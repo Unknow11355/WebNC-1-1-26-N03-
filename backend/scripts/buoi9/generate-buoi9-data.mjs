@@ -44,10 +44,6 @@ function qi(value) {
   return `\`${String(value).replaceAll('`', '``')}\``;
 }
 
-function qa(value) {
-  return String(value).replaceAll('`', '``');
-}
-
 async function useTarget() {
   await conn.query(`USE ${qi(TARGET_DB)}`);
 }
