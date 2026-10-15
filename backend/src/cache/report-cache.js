@@ -1,4 +1,3 @@
-/* global process */
 
 const DEFAULT_TTL_MS = 30_000;
 const MAX_ENTRIES = 256;

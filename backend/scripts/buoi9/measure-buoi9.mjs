@@ -5,6 +5,8 @@ import axios from 'axios';
 import mysql from 'mysql2/promise';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { Buffer } from 'node:buffer';
+import { performance } from 'node:perf_hooks';
 
 const cacheCheck = process.argv.includes('--cache-check');
 const phase = getArg('--phase=', cacheCheck ? 'cache' : 'before');
