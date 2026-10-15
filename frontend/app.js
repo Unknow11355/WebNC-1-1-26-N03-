@@ -212,7 +212,8 @@ async function render() {
   stopScanner();
   const version = ++renderVersion;
   const current = route();
-  const allowed = shell();
+  const allowed = shell().concat(["forgot", "reset"]);
+
   document.title =
     ($("#nav .active")?.textContent || "Siêu thị mini") + " · Siêu thị mini";
   if (!allowed.includes(current)) {
@@ -235,19 +236,70 @@ async function render() {
           : scheduleView({ api, user: state.user, toast });
       html = view.html;
       after = view.after;
-    } else if (current === "login" || current === "register") {
+    } else if (current === "login" || current === "register" || current === "forgot" || current === "reset") {
       const register = current === "register";
-      html = `<div class="auth panel">${title(register ? "Tạo tài khoản" : "Chào mừng trở lại", "Đăng nhập để tiếp tục mua sắm và quản lý siêu thị.")}${form((register ? field("full_name", "Họ và tên") : "") + field("email", "Email", "email") + field("password", "Mật khẩu", "password") + (register ? field("phone", "Số điện thoại", "tel", "", null, false) + field("address", "Địa chỉ", "text", "", null, false) : ""), register ? "Đăng ký" : "Đăng nhập")}<p class="muted">${register ? 'Đã có tài khoản? <a href="#login">Đăng nhập</a>' : 'Chưa có tài khoản? <a href="#register">Đăng ký</a>'}</p><p class="note">Khôi phục mật khẩu chưa được backend hiện tại hỗ trợ.</p></div>`;
+      const forgot = current === "forgot";
+      const reset = current === "reset";
+
+      let subtitle = "Đăng nhập để tiếp tục mua sắm và quản lý siêu thị.";
+      let formContent = "";
+      let submitText = "Đăng nhập";
+
+      if (register) {
+        subtitle = "Tạo tài khoản khách hàng mới.";
+        formContent = field("full_name", "Họ và tên") + field("email", "Email", "email") + field("password", "Mật khẩu", "password") + field("phone", "Số điện thoại", "tel", "", null, false) + field("address", "Địa chỉ", "text", "", null, false);
+        submitText = "Đăng ký";
+      } else if (forgot) {
+        subtitle = "Nhập email của bạn để nhận yêu cầu khôi phục mật khẩu.";
+        formContent = field("email", "Email đăng ký", "email");
+        submitText = "Gửi yêu cầu khôi phục";
+      } else if (reset) {
+        subtitle = "Nhập mã token khôi phục nhận được và mật khẩu mới.";
+        formContent = field("token", "Mã Token khôi phục", "text") + field("new_password", "Mật khẩu mới", "password");
+        submitText = "Đặt lại mật khẩu";
+      } else {
+        formContent = field("email", "Email", "email") + field("password", "Mật khẩu", "password");
+      }
+
+      html = `<div class="auth panel">${title(register ? "Tạo tài khoản" : forgot ? "Quên mật khẩu" : reset ? "Đặt lại mật khẩu" : "Chào mừng trở lại", subtitle)}${form(formContent, submitText)}<p class="muted">${
+        register ? 'Đã có tài khoản? <a href="#login">Đăng nhập</a>' :
+        forgot ? 'Nhớ lại mật khẩu? <a href="#login">Đăng nhập</a>' :
+        reset ? 'Quay lại <a href="#login">Đăng nhập</a>' :
+        'Chưa có tài khoản? <a href="#register">Đăng ký</a> · <a href="#forgot">Quên mật khẩu?</a>'
+      }</p></div>`;
+
       after = () =>
         wireForm($("#main"), async (data) => {
-          const result = await api("/auth/" + current, {
-            method: "POST",
-            body: data,
-          });
-          if (register) {
+          if (forgot) {
+            const result = await api("/auth/password-reset/request", {
+              method: "POST",
+              body: data,
+            });
+            toast(result.message || "Đã gửi yêu cầu. Kiểm tra email hoặc console backend.");
+            if (result.data?.reset_token) {
+              console.log("DEMO RESET TOKEN:", result.data.reset_token);
+              alert("Mã/Token demo (chỉ hiện khi dev): " + result.data.reset_token);
+            }
+            location.hash = "reset";
+          } else if (reset) {
+            await api("/auth/password-reset/confirm", {
+              method: "POST",
+              body: data,
+            });
+            toast("Đặt lại mật khẩu thành công. Hãy đăng nhập.");
+            location.hash = "login";
+          } else if (register) {
+            await api("/auth/" + current, {
+              method: "POST",
+              body: data,
+            });
             toast("Đăng ký thành công. Hãy đăng nhập.");
             location.hash = "login";
           } else {
+            const result = await api("/auth/login", {
+              method: "POST",
+              body: data,
+            });
             state.token = result.data.access_token;
             sessionStorage.setItem("token", state.token);
             state.user = (await api("/auth/me")).data;
@@ -322,11 +374,16 @@ async function render() {
         html +=
           '<div class="empty">Giỏ hàng đang trống. <a href="#shop">Tiếp tục mua sắm</a></div>';
       else {
-        html += `<div class="split"><section class="panel">${cart.items.map((i) => `<div class="item-row"><div><strong>${e(i.product_name)}</strong><p class="muted">${money(i.price)} / ${e(i.unit)}</p></div><label>Số lượng<input class="quantity" type="number" min="1" step="1" value="${e(i.quantity)}" id="qty-${i.cart_item_id}"></label><div class="actions">${btn("cart-update", "Lưu", i.cart_item_id)}${btn("cart-remove", "Bỏ", i.cart_item_id, "danger")}</div></div>`).join("")}<div class="total">Tạm tính: ${money(cartTotal(cart.items))}</div></section><section class="panel"><h2>Thông tin nhận hàng</h2>${form(
+        // CẬP NHẬT: THÊM FIELD PAYMENT METHOD VÀO FORM GIỎ HÀNG
+        html += `<div class="split"><section class="panel">${cart.items.map((i) => `<div class="item-row"><div><strong>${e(i.product_name)}</strong><p class="muted">${money(i.price)} /${e(i.unit)}</p></div><label>Số lượng<input class="quantity" type="number" min="1" step="1" value="${e(i.quantity)}" id="qty-${i.cart_item_id}"></label><div class="actions">${btn("cart-update", "Lưu", i.cart_item_id)}${btn("cart-remove", "Bỏ", i.cart_item_id, "danger")}</div></div>`).join("")}<div class="total">Tạm tính: ${money(cartTotal(cart.items))}</div></section><section class="panel"><h2>Thông tin nhận hàng</h2>${form(
           field("delivery_method", "Cách nhận", "text", "pickup", [
             ["pickup", "Nhận tại cửa hàng"],
             ["delivery", "Giao tận nơi"],
           ]) +
+            field("payment_method", "Phương thức thanh toán", "text", "cash", [
+              ["cash", "Tiền mặt khi nhận hàng"],
+              ["vnpay", "Chuyển khoản VNPay"],
+            ]) +
             field(
               "shipping_address",
               "Địa chỉ giao hàng",
@@ -337,17 +394,37 @@ async function render() {
             ) +
             field("voucher_code", "Mã voucher", "text", "", null, false) +
             field("note", "Ghi chú", "text", "", null, false),
-          "Đặt hàng · Tiền mặt",
-        )}${btn("voucher-check", "Kiểm tra voucher")}<p class="note">Giá sau voucher do máy chủ xác nhận. Đặt hàng chưa đồng nghĩa đã thanh toán. Nếu mất kết nối, kiểm tra Đơn hàng trước khi đặt lại.</p></section></div>`;
+          "Đặt hàng",
+        )}${btn("voucher-check", "Kiểm tra voucher")}<p class="note">Nếu chọn VNPay, bạn sẽ được chuyển hướng sang cổng thanh toán sau khi đặt hàng.</p></section></div>`;
         after = () =>
           wireForm($("#main"), async (d) => {
             if (d.delivery_method === "delivery" && !d.shipping_address.trim())
               throw new Error("Vui lòng nhập địa chỉ giao hàng.");
+
+            // Gọi Checkout API với d (chứa luôn payment_method mới thêm)
             const r = await api("/orders/checkout", {
               method: "POST",
-              body: { ...d, payment_method: "cash" },
+              body: d,
             });
+
             toast("Đã tạo đơn #" + r.data.order_id);
+
+            // CẬP NHẬT: KIỂM TRA NẾU KHÁCH CHỌN VNPAY THÌ ĐÁ SANG SANDBOX
+            if (r.data.requiresVnpayPayment || d.payment_method === 'vnpay') {
+              try {
+                const payRes = await api("/payments/vnpay/create", {
+                  method: "POST",
+                  body: { order_id: r.data.order_id }
+                });
+                if (payRes.data?.paymentUrl) {
+                  window.location.href = payRes.data.paymentUrl;
+                  return;
+                }
+              } catch (e) {
+                toast("Tạo link thanh toán VNPay lỗi. Vui lòng thanh toán lại trong mục Đơn hàng.");
+              }
+            }
+
             location.hash = "orders";
           });
       }
@@ -386,14 +463,27 @@ async function render() {
       const u = (await api("/auth/me")).data;
       html =
         title("Tài khoản", "Thông tin tài khoản hiện tại.") +
-        `<section class="panel stack"><h2>${e(u.full_name)}</h2><p>Email đăng nhập: ${e(u.email)}</p><div>${badge(u.role_name)} ${badge(u.status)}</div>${form(field("full_name", "Họ và tên", "text", u.full_name) + field("phone", "Số điện thoại", "tel", u.phone || "", null, false) + field("address", "Địa chỉ", "text", u.address || "", null, false), "Lưu hồ sơ")}<p class="muted">Điện thoại: 8–15 chữ số, có thể bắt đầu bằng +. Để trống điện thoại/địa chỉ để xóa thông tin đó.</p><p class="note">Email và vai trò không thay đổi tại đây. Chức năng đổi mật khẩu chưa được triển khai.</p></section>`;
-      after = () =>
-        wireForm($("#main"), async (data) => {
-          const result = await api("/auth/me", { method: "PATCH", body: data });
-          state.user = result.data;
-          toast("Đã cập nhật hồ sơ");
-          await render();
-        });
+        `<section class="panel stack"><h2>${e(u.full_name)}</h2><p>Email đăng nhập: ${e(u.email)}</p><div>${badge(u.role_name)} ${badge(u.status)}</div>${form(field("full_name", "Họ và tên", "text", u.full_name) + field("phone", "Số điện thoại", "tel", u.phone || "", null, false) + field("address", "Địa chỉ", "text", u.address || "", null, false), "Lưu hồ sơ")}</section>` +
+        `<section class="panel stack"><h2>Đổi mật khẩu</h2>${form(field("current_password", "Mật khẩu hiện tại", "password") + field("new_password", "Mật khẩu mới (từ 8 ký tự)", "password"), "Cập nhật mật khẩu")}</section>`;
+
+      after = () => {
+        const forms = $("#main").querySelectorAll("form");
+        if (forms[0]) {
+          wireForm(forms[0].parentElement, async (data) => {
+            const result = await api("/auth/me", { method: "PATCH", body: data });
+            state.user = result.data;
+            toast("Đã cập nhật hồ sơ");
+            await render();
+          });
+        }
+        if (forms[1]) {
+          wireForm(forms[1].parentElement, async (data) => {
+            await api("/auth/me/password", { method: "PATCH", body: data });
+            toast("Đã đổi mật khẩu thành công. Các phiên khác đã được thu hồi.");
+            forms[1].reset();
+          });
+        }
+      };
     } else {
       const config = resources[current];
       const [r, categories] = await Promise.all([
@@ -674,20 +764,28 @@ async function editResource(id) {
 }
 function posPanel() {
   const pending = state.posRequest;
-  return `${state.pos.map((i) => `<div class="item-row"><div>${e(i.product_name)}<p class="muted">${i.quantity} × ${money(i.price)}</p></div>${btn("pos-minus", "−", i.product_id)}${btn("pos-add", "+", i.product_id)}</div>`).join("") || '<p class="muted">Chọn sản phẩm để lập phiếu bán.</p>'}<div class="total">Tạm tính ${money(cartTotal(state.pos))}</div><p class="note">Chỉ xác nhận sau khi đã thu tiền. Chưa áp dụng voucher/điểm. Tổng tiền chính thức lấy từ máy chủ.</p>${pending ? '<p class="note">Có yêu cầu chưa xác định kết quả. Giữ nguyên phiếu và thử lại cùng mã yêu cầu; không tạo phiếu mới.</p>' : ""}${state.pos.length || pending ? btn("pos-pay", pending ? "Thử lại yêu cầu thanh toán" : "Đã thu tiền · Hoàn tất", "", "") : ""}`;
+  return `${state.pos.map((i) => `<div class="item-row"><div>${e(i.product_name)}<p class="muted">${i.quantity} ×${money(i.price)}</p></div>${btn("pos-minus", "−", i.product_id)}${btn("pos-add", "+", i.product_id)}</div>`).join("") || '<p class="muted">Chọn sản phẩm để lập phiếu bán.</p>'}<div class="total">Tạm tính ${money(cartTotal(state.pos))}</div><p class="note">Chỉ xác nhận sau khi đã thu tiền. Chưa áp dụng voucher/điểm. Tổng tiền chính thức lấy từ máy chủ.</p>${pending ? '<p class="note">Có yêu cầu chưa xác định kết quả. Giữ nguyên phiếu và thử lại cùng mã yêu cầu; không tạo phiếu mới.</p>' : ""}${state.pos.length || pending ? btn("pos-pay", pending ? "Thử lại yêu cầu thanh toán" : "Đã thu tiền · Hoàn tất", "", "") : ""}`;
 }
 async function showOrder(id) {
   const o = (await api("/orders/" + id)).data;
+
+  // CẬP NHẬT KIỂM TRA HIỆN NÚT VNPAY
+  const isCustomer = role() === 'customer';
+  const canPayVnpay = o.payment_method === 'vnpay' && o.payment_status === 'pending' && isCustomer;
+
   modal(
     "Đơn hàng #" + id,
     `<div class="actions">${badge(o.status)}${badge(o.payment_status)}</div><p>${e(label(o.delivery_method))} · ${e(o.shipping_address || "Tại cửa hàng")}</p>${o.rejection_reason ? `<p class="note">Lý do từ chối: ${e(o.rejection_reason)}</p>` : ""}${table(
-      ["Sản phẩm", "Số lượng", "Đơn giá"],
+      ["Sản phẩm", "Số lượng", "Đơn giá", "Thao tác"],
       o.items.map((i) => [
         e(i.product_name || "#" + i.product_id),
         e(i.quantity),
         money(i.price),
+        (o.status === 'completed' && role() === 'customer') ? btn("review-add", "Đánh giá", i.product_id) : ""
       ]),
-    )}<p>Giảm giá: ${money(o.discount_amount)}</p><div class="total">Thanh toán: ${money(o.final_amount)}</div><div class="actions">${orderActions(
+    )}<p>Giảm giá: ${money(o.discount_amount)}</p><div class="total">Thanh toán: ${money(o.final_amount)}</div><div class="actions">
+      ${canPayVnpay ? btn("pay-vnpay", "Thanh toán VNPay ngay", id) : ""}
+      ${orderActions(
       o,
       role(),
     )
@@ -720,10 +818,39 @@ async function action(name, id) {
     return render();
   }
   if (name === "detail") {
-    const p = (await api("/products/" + id)).data;
+    const [pReq, revReq] = await Promise.all([
+      api("/products/" + id).catch(() => ({ data: {} })),
+      api("/reviews/products/" + id).catch(() => ({ data: [] }))
+    ]);
+    const p = pReq.data;
+    const reviews = revReq.data || [];
+
+    const reviewsHtml = reviews.length > 0
+      ? reviews.map(r => `
+          <div class="review-item" style="border-bottom: 1px solid #eee; padding: 10px 0;">
+            <div style="display: flex; justify-content: space-between;">
+              <strong>${e(r.customer_name)}</strong>
+              <span style="color: #ffc107;">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</span>
+            </div>
+            <p style="margin: 5px 0;">${e(r.comment)}</p>
+            <small class="muted">${new Date(r.created_at).toLocaleString('vi-VN')}</small>
+            ${(role() === 'admin' || state.user?.user_id === r.user_id) ? `<div style="margin-top: 5px;">${btn("review-delete", "Xóa", r.review_id, "danger")}</div>` : ''}
+          </div>
+        `).join('')
+      : '<p class="muted">Chưa có đánh giá nào.</p>';
+
     modal(
       p.product_name,
-      `${image(p)}<div class="total">${money(p.price)} / ${e(p.unit)}</div><p>${e(p.description || "Chưa có mô tả.")}</p><p>Mã vạch: ${e(p.barcode)} · Tồn kệ: ${e(p.stock)}</p>${Number(p.stock) > 0 ? btn("cart-add", "Thêm vào giỏ", id, "") : ""}`,
+      `${image(p)}
+       <div class="total">${money(p.price)} / ${e(p.unit)}</div>
+       <p>${e(p.description || "Chưa có mô tả.")}</p>
+       <p>Mã vạch: ${e(p.barcode)} · Tồn kệ: ${e(p.stock)}</p>
+       ${Number(p.stock) > 0 ? btn("cart-add", "Thêm vào giỏ", id, "") : ""}
+       <hr style="margin: 20px 0;">
+       <h3>Đánh giá từ khách hàng</h3>
+       <div class="reviews-list" style="max-height: 250px; overflow-y: auto;">
+         ${reviewsHtml}
+       </div>`
     );
     return;
   }
@@ -915,7 +1042,6 @@ async function action(name, id) {
         headers: { "Idempotency-Key": req.key },
       });
     } catch (error) {
-      // These errors are raised before commit; unknown/network/5xx outcomes keep the same key.
       if (
         [
           "INSUFFICIENT_STOCK",
@@ -936,6 +1062,47 @@ async function action(name, id) {
     toast("Thanh toán thành công");
     await render();
     await showOrder(r.data.order_id);
+    return;
+  }
+
+  // CẬP NHẬT: GỌI API TẠO LINK SANDBOX KHI BẤM NÚT "Thanh toán VNPay ngay"
+  if (name === "pay-vnpay") {
+    const r = await api("/payments/vnpay/create", {
+      method: "POST",
+      body: { order_id: Number(id) }
+    });
+    if (r.data && r.data.paymentUrl) {
+      window.location.href = r.data.paymentUrl; // Chuyển hướng sang VNPay
+    } else {
+      toast("Không thể tạo liên kết thanh toán VNPay lúc này.");
+    }
+    return;
+  }
+
+  if (name === "review-add") {
+    $("#dialog").close();
+    const fields = field("rating", "Số sao (1-5)", "number", "5", [
+      ["5", "5 Sao - Tuyệt vời"], ["4", "4 Sao - Tốt"], ["3", "3 Sao - Bình thường"],
+      ["2", "2 Sao - Tệ"], ["1", "1 Sao - Rất tệ"]
+    ]) + field("comment", "Nội dung đánh giá", "text");
+
+    modal("Đánh giá sản phẩm", form(fields, "Gửi đánh giá"), async (d) => {
+      await api("/reviews", {
+        method: "POST",
+        body: { product_id: Number(id), rating: Number(d.rating), comment: d.comment }
+      });
+      $("#dialog").close();
+      toast("Cảm ơn bạn đã gửi đánh giá!");
+    });
+    return;
+  }
+
+  if (name === "review-delete") {
+    if (!confirm("Bạn có chắc muốn xóa đánh giá này không?")) return;
+    await api("/reviews/" + id, { method: "DELETE" });
+    $("#dialog").close();
+    toast("Đã xóa đánh giá thành công.");
+    return;
   }
 }
 document.addEventListener("click", async (event) => {
@@ -983,20 +1150,17 @@ async function start() {
 }
 start();
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Tự động đóng hộp thông báo khi click ra ngoài
     document.addEventListener('click', (event) => {
         const notiWrapper = document.querySelector('.noti-wrapper');
-        // Kiểm tra nếu menu đang mở và vị trí click không nằm trong menu
         if (notiWrapper && notiWrapper.hasAttribute('open') && !notiWrapper.contains(event.target)) {
             notiWrapper.removeAttribute('open');
         }
     });
 
-    // 2. Thêm CSS cho chấm đỏ thông báo (nếu file style.css chưa có)
     const style = document.createElement('style');
     style.innerHTML = `
         .noti-btn { position: relative; cursor: pointer; list-style: none; }
-        .noti-btn::-webkit-details-marker { display: none; } /* Ẩn mũi tên mặc định */
+        .noti-btn::-webkit-details-marker { display: none; }
         .noti-badge {
             position: absolute;
             top: -5px;

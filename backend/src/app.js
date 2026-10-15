@@ -24,6 +24,8 @@ export function createApp({
   barcodeService,
   scheduleService,
   shiftService,
+  reviewService,
+  paymentService, // <--- 1. Thêm paymentService vào đây
   requireAuth,
   requireRole,
   corsOrigins = [],
@@ -60,6 +62,8 @@ export function createApp({
       barcodeService,
       scheduleService,
       shiftService,
+      reviewService,
+      paymentService, // <--- 2. Truyền paymentService xuống routes/index.js
       requireAuth,
       requireRole,
     }),

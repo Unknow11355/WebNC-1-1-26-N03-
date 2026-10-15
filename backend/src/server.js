@@ -21,6 +21,15 @@ import { createReportRepository } from './repositories/report.repository.js';
 import { createSessionRepository } from './repositories/session.repository.js';
 import { createUserRepository } from './repositories/user.repository.js';
 import { createVoucherRepository } from './repositories/voucher.repository.js';
+
+// --- IMPORT REVIEW ---
+import { createReviewRepository } from './repositories/review.repository.js';
+import { createReviewService } from './services/review.service.js';
+
+// --- IMPORT PAYMENT (CN12) ---
+import { createPaymentRepository } from './repositories/payment.repository.js';
+import { createPaymentService } from './services/payment.service.js';
+
 import { createAuthService } from './services/auth.service.js';
 import { createAuditService } from './services/audit.service.js';
 import { createCartService } from './services/cart.service.js';
@@ -49,6 +58,10 @@ const posRepository = createPosRepository(pool);
 const auditRepository = createAuditRepository(pool);
 const notificationRepository = createNotificationRepository(pool);
 const reportRepository = createReportRepository(pool);
+
+// --- KHỞI TẠO REPOSITORY CHO REVIEW VÀ PAYMENT ---
+const reviewRepository = createReviewRepository(pool);
+const paymentRepository = createPaymentRepository(pool);
 
 const auditService = createAuditService({ repository: auditRepository });
 const authService = createAuthService({
@@ -81,6 +94,11 @@ const orderService = createOrderService({
 });
 const posService = createPosService({ repository: posRepository, transactionManager });
 const reportService = createReportService(reportRepository);
+
+// --- KHỞI TẠO SERVICE CHO REVIEW VÀ PAYMENT ---
+const reviewService = createReviewService({ reviewRepository });
+const paymentService = createPaymentService({ paymentRepository });
+
 const scheduleService = createScheduleService(createScheduleRepository(pool));
 const barcodeService = createBarcodeService(createBarcodeRepository(pool));
 const { requireAuth, requireRole } = createAuthMiddleware({
@@ -105,6 +123,8 @@ const app = createApp({
   reportService,
   userService,
   voucherService,
+  reviewService,
+  paymentService, // <--- TRUYỀN PAYMENT SERVICE VÀO APP
   requireAuth,
   requireRole,
   corsOrigins: env.corsOrigins,

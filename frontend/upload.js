@@ -44,11 +44,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const token = localStorage.getItem('token') || sessionStorage.getItem('token');
 
                 // GỌI API (Lưu ý: Bạn kiểm tra lại index.js xem prefix là '/api/v1/upload' hay gì khác để khớp nhé)
-                const response = await fetch('/api/v1/upload/product-image', {
+               // Sửa đoạn gọi fetch thành thế này:
+                // Trong file frontend/upload.js của bạn:
+                // Sửa từ '/api/v1/upload/product-image' thành '/api/v1/uploads/product-image' (thêm chữ s):
+                const response = await fetch('/api/v1/uploads/product-image', {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`
-                        // KHÔNG set Content-Type ở đây, trình duyệt sẽ tự động set 'multipart/form-data' cho FormData
+                        // KHÔNG set Content-Type ở đây
                     },
                     body: formData
                 });
