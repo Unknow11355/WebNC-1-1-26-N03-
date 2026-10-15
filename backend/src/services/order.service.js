@@ -1,4 +1,5 @@
 import { AppError } from '../errors/app-error.js';
+import { invalidateReportCache } from '../cache/report-cache.js';
 
 function id(value, field) {
   const n = Number(value);
@@ -354,6 +355,7 @@ export function createOrderService({
             executor: connection,
           });
         }
+        invalidateReportCache();
         return orderRepository.findById(order.order_id, connection);
       });
     },
