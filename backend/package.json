@@ -15,7 +15,10 @@
     "format": "prettier --write \"src/**/*.js\" \"test/**/*.js\" eslint.config.js package.json .prettierrc.json",
     "format:check": "prettier --check \"src/**/*.js\" \"test/**/*.js\" eslint.config.js package.json .prettierrc.json",
     "check": "npm run lint && npm run format:check && npm test",
-    "measure:indexes": "node scripts/measure-buoi5-indexes.js"
+    "measure:indexes": "node scripts/measure-buoi5-indexes.js",
+    "buoi9:seed": "node scripts/buoi9/generate-buoi9-data.mjs --apply",
+    "buoi9:measure": "node scripts/buoi9/measure-buoi9.mjs",
+    "buoi9:report": "node scripts/buoi9/build-buoi9-report.mjs"
   },
   "dependencies": {
     "axios": "^1.20.0",
