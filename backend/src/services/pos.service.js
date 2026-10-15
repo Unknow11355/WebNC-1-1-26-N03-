@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { AppError } from '../errors/app-error.js';
+import { invalidateReportCache } from '../cache/report-cache.js';
 
 const OPERATION = 'POS_CASH';
 const MAX_KEY_LENGTH = 64;
@@ -253,7 +254,7 @@ export function createPosService({ repository, loyaltyService = null, transactio
         .digest('hex');
 
       try {
-        return await transactionManager.run(async (connection) => {
+        const result = await transactionManager.run(async (connection) => {
           let saleRequest;
           try {
             saleRequest = await repository.createSaleRequest(
@@ -444,6 +445,8 @@ export function createPosService({ repository, loyaltyService = null, transactio
             data: { ...order, items: orderItems },
           };
         });
+        if (!result.replayed) invalidateReportCache();
+        return result;
       } catch (error) {
         if (!isSaleRequestDuplicate(error)) throw error;
 
