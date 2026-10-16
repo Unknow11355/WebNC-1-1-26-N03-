@@ -1,17 +1,31 @@
-export function createReviewController(service) {
-  if (!service) throw new TypeError('Review controller requires service');
-
+export function createReviewController({ reviewService }) {
   return {
-    async list(req, res) {
-      const productId = req.query.productId || req.params.productId;
-      res.status(200).json({ success: true, data: await service.getProductReviews(productId) });
+    async create(req, res, next) {
+      try {
+        // Lỗi của bạn nằm ở đây: Phải truyền req.auth để báo cho Service biết ai đang đánh giá
+        const result = await reviewService.createReview(req.auth, req.body);
+        res.status(201).json(result);
+      } catch (err) {
+        next(err);
+      }
     },
-    async create(req, res) {
-      // req.user chứa thông tin từ token (middleware requireAuth)
-      res.status(201).json({ success: true, data: await service.createReview(req.user, req.body) });
+
+    async getByProduct(req, res, next) {
+      try {
+        const result = await reviewService.getProductReviews(req.params.productId);
+        res.json(result);
+      } catch (err) {
+        next(err);
+      }
     },
-    async remove(req, res) {
-      res.status(200).json({ success: true, data: await service.deleteReview(req.user, req.params.reviewId) });
+
+    async delete(req, res, next) {
+      try {
+        const result = await reviewService.deleteReview(req.auth, req.params.reviewId);
+        res.json(result);
+      } catch (err) {
+        next(err);
+      }
     }
   };
 }

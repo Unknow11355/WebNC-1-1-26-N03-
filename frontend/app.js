@@ -1089,6 +1089,7 @@ async function action(name, id) {
     modal("Đánh giá sản phẩm", form(fields, "Gửi đánh giá"), async (d) => {
       await api("/reviews", {
         method: "POST",
+        headers: { Authorization: "Bearer " + state.token }, // Thêm dòng này
         body: { product_id: Number(id), rating: Number(d.rating), comment: d.comment }
       });
       $("#dialog").close();
