@@ -1,7 +1,10 @@
 import { AppError } from '../errors/app-error.js';
+import { getReportCache, setReportCache } from '../cache/report-cache.js';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TZ = 'Asia/Ho_Chi_Minh';
+
+export const REPORT_CACHE_STATUS = Symbol('REPORT_CACHE_STATUS');
 
 function validateDate(value, field) {
   if (typeof value !== 'string' || !DATE_RE.test(value))
@@ -29,8 +32,6 @@ function dateWindow(query = {}) {
   const [toYear, toMonth, toDay] = to.split('-').map(Number);
   const nextDayText = new Date(Date.UTC(toYear, toMonth - 1, toDay + 1)).toISOString().slice(0, 10);
 
-  // SQL repositories query with a MySQL session timezone of +07:00, so pass
-  // Asia/Ho_Chi_Minh wall-clock timestamps, not UTC-formatted strings.
   return {
     from,
     to,
@@ -52,24 +53,53 @@ function meta(window) {
   };
 }
 
+function cacheKey(auth, reportName, window) {
+  return [
+    auth?.role ?? 'anonymous',
+    auth?.userId ?? 'anonymous',
+    reportName,
+    window.from,
+    window.to,
+  ].join('|');
+}
+
+function withCacheStatus(response, status) {
+  Object.defineProperty(response, REPORT_CACHE_STATUS, {
+    value: status,
+    enumerable: false,
+    configurable: false,
+  });
+  return response;
+}
+
 export function createReportService(repository) {
   if (!repository) throw new TypeError('Report service requires repository');
+
   return {
     async revenue(auth, query) {
       assertAdmin(auth);
       const window = dateWindow(query);
       const result = await repository.revenue(window);
-      return { data: result, meta: meta(window) };
+      return withCacheStatus({ data: result, meta: meta(window) }, 'BYPASS');
     },
+
     async products(auth, query) {
       assertAdmin(auth);
       const window = dateWindow(query);
-      return { data: await repository.products(window), meta: meta(window) };
+      const key = cacheKey(auth, 'products', window);
+      const cached = getReportCache(key);
+      if (cached) return withCacheStatus({ data: cached, meta: meta(window) }, 'HIT');
+
+      const result = await repository.products(window);
+      setReportCache(key, result);
+      return withCacheStatus({ data: result, meta: meta(window) }, 'MISS');
     },
+
     async employees(auth, query) {
       assertAdmin(auth);
       const window = dateWindow(query);
-      return { data: await repository.employees(window), meta: meta(window) };
+      const result = await repository.employees(window);
+      return withCacheStatus({ data: result, meta: meta(window) }, 'BYPASS');
     },
   };
 }

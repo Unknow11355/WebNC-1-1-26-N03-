@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { AppError } from '../errors/app-error.js';
+import { invalidateReportCache } from '../cache/report-cache.js';
 
 const OPERATION = 'POS_CASH';
 const MAX_KEY_LENGTH = 64;
@@ -73,7 +74,6 @@ function assertUnsupportedFields(input, items) {
     'final_amount',
     'voucher_id',
     'voucher_code',
-    'points_used',
     'points_discount',
   ];
 
@@ -143,11 +143,12 @@ function normalizeIdempotencyKey(value) {
   return key;
 }
 
-function canonicalPayload({ customerId, paymentMethod, note, items }) {
+function canonicalPayload({ customerId, paymentMethod, note, pointsUsed, items }) {
   return JSON.stringify({
     customer_id: customerId,
     payment_method: paymentMethod,
     note,
+    points_used: pointsUsed,
     items: items.map(({ productId, quantity }) => ({
       product_id: productId,
       quantity,
@@ -198,7 +199,7 @@ async function readReplay({ repository, actorId, requestKey, requestHash }) {
   };
 }
 
-export function createPosService({ repository, transactionManager }) {
+export function createPosService({ repository, loyaltyService = null, transactionManager }) {
   if (!repository || !transactionManager) {
     throw new TypeError('POS service requires repository and transaction manager');
   }
@@ -229,6 +230,16 @@ export function createPosService({ repository, transactionManager }) {
       }
 
       const customerId = optionalCustomerId(payload.customer_id);
+      const pointsUsed = Number(payload.points_used ?? 0);
+      if (!Number.isSafeInteger(pointsUsed) || pointsUsed < 0) {
+        throw new AppError(400, 'VALIDATION_ERROR', 'points_used phải là số nguyên không âm');
+      }
+      if (pointsUsed > 0) {
+        if (customerId === null)
+          throw new AppError(400, 'VALIDATION_ERROR', 'Phải có customer_id khi đổi điểm tại POS');
+        if (!loyaltyService)
+          throw new AppError(500, 'INTERNAL_ERROR', 'CN10 loyalty service chưa được cấu hình');
+      }
       const note = normalizeNote(payload.note);
       const requestHash = createHash('sha256')
         .update(
@@ -236,13 +247,14 @@ export function createPosService({ repository, transactionManager }) {
             customerId,
             paymentMethod,
             note,
+            pointsUsed,
             items,
           }),
         )
         .digest('hex');
 
       try {
-        return await transactionManager.run(async (connection) => {
+        const result = await transactionManager.run(async (connection) => {
           let saleRequest;
           try {
             saleRequest = await repository.createSaleRequest(
@@ -334,7 +346,19 @@ export function createPosService({ repository, transactionManager }) {
 
           const totalAmount = formatMoneyCents(totalCents);
           const discountAmount = '0.00';
-          const finalAmount = totalAmount;
+          let finalAmount = totalAmount;
+          let pointsPreview = {
+            points_used: 0,
+            points_discount: 0,
+            final_amount: Number(totalAmount),
+          };
+          if (pointsUsed > 0) {
+            pointsPreview = loyaltyService.previewRedemption({
+              pointsUsed,
+              eligibleAmount: Number(totalAmount),
+            });
+            finalAmount = formatMoneyCents(BigInt(Math.round(pointsPreview.final_amount * 100)));
+          }
           const paidAt = new Date();
 
           const orderId = await repository.createOfflineOrder(
@@ -350,6 +374,16 @@ export function createPosService({ repository, transactionManager }) {
             },
             connection,
           );
+
+          if (pointsPreview.points_used > 0) {
+            await loyaltyService.redeemForOrder({
+              customerId,
+              orderId,
+              pointsUsed: pointsPreview.points_used,
+              eligibleAmount: Number(totalAmount),
+              executor: connection,
+            });
+          }
 
           for (const item of lockedProducts) {
             const affectedRows = await repository.decrementProductStock(
@@ -387,6 +421,16 @@ export function createPosService({ repository, transactionManager }) {
             connection,
           );
 
+          if (loyaltyService && customerId) {
+            await loyaltyService.earnForPaidOrder({
+              customerId,
+              orderId,
+              finalAmount,
+              paymentStatus: 'paid',
+              executor: connection,
+            });
+          }
+
           await repository.updateSaleRequestOrderId(
             saleRequest.sale_request_id,
             orderId,
@@ -401,6 +445,8 @@ export function createPosService({ repository, transactionManager }) {
             data: { ...order, items: orderItems },
           };
         });
+        if (!result.replayed) invalidateReportCache();
+        return result;
       } catch (error) {
         if (!isSaleRequestDuplicate(error)) throw error;
 
