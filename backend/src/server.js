@@ -21,7 +21,6 @@ import { createReportRepository } from './repositories/report.repository.js';
 import { createSessionRepository } from './repositories/session.repository.js';
 import { createUserRepository } from './repositories/user.repository.js';
 import { createVoucherRepository } from './repositories/voucher.repository.js';
-<<<<<<< HEAD
 
 // --- IMPORT REVIEW ---
 import { createReviewRepository } from './repositories/review.repository.js';
@@ -31,9 +30,9 @@ import { createReviewService } from './services/review.service.js';
 import { createPaymentRepository } from './repositories/payment.repository.js';
 import { createPaymentService } from './services/payment.service.js';
 
-=======
+// --- IMPORT LOYALTY ---
 import { createLoyaltyRepository } from './repositories/loyalty.repository.js';
->>>>>>> main
+
 import { createAuthService } from './services/auth.service.js';
 import { createAuditService } from './services/audit.service.js';
 import { createCartService } from './services/cart.service.js';
@@ -135,12 +134,9 @@ const app = createApp({
   reportService,
   userService,
   voucherService,
-<<<<<<< HEAD
   reviewService,
-  paymentService, // <--- TRUYỀN PAYMENT SERVICE VÀO APP
-=======
+  paymentService,
   loyaltyService,
->>>>>>> main
   requireAuth,
   requireRole,
   corsOrigins: env.corsOrigins,
