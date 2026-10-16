@@ -23,17 +23,17 @@ export function createReportRepository(db) {
                   COALESCE(SUM(o.final_amount), 0) AS revenue,
                   COALESCE(SUM(o.discount_amount), 0) AS discount_amount
            FROM orders o
-           INNER JOIN (
-             SELECT order_id, SUM(amount) AS paid_amount
-             FROM payments
-             WHERE status = 'paid'
-             GROUP BY order_id
-           ) p ON p.order_id = o.order_id
            WHERE o.payment_status = 'paid'
              AND o.paid_at >= ?
              AND o.paid_at < ?
              AND o.status NOT IN ('cancelled', 'rejected')
-             AND o.paid_at IS NOT NULL`,
+             AND o.paid_at IS NOT NULL
+             AND EXISTS (
+               SELECT 1
+               FROM payments p
+               WHERE p.order_id = o.order_id
+                 AND p.status = 'paid'
+             )`,
           [from, to],
         );
         const [series] = await connection.execute(
@@ -42,17 +42,17 @@ export function createReportRepository(db) {
                   COALESCE(SUM(o.final_amount), 0) AS revenue,
                   COALESCE(SUM(o.discount_amount), 0) AS discount_amount
            FROM orders o
-           INNER JOIN (
-             SELECT order_id, SUM(amount) AS paid_amount
-             FROM payments
-             WHERE status = 'paid'
-             GROUP BY order_id
-           ) p ON p.order_id = o.order_id
            WHERE o.payment_status = 'paid'
              AND o.paid_at >= ?
              AND o.paid_at < ?
              AND o.status NOT IN ('cancelled', 'rejected')
              AND o.paid_at IS NOT NULL
+             AND EXISTS (
+               SELECT 1
+               FROM payments p
+               WHERE p.order_id = o.order_id
+                 AND p.status = 'paid'
+             )
            GROUP BY DATE(o.paid_at)
            ORDER BY report_date ASC`,
           [from, to],
@@ -94,17 +94,17 @@ export function createReportRepository(db) {
                   COALESCE(SUM(o.final_amount), 0) AS revenue
            FROM orders o
            LEFT JOIN users u ON u.user_id = o.employee_id
-           INNER JOIN (
-             SELECT order_id, SUM(amount) AS paid_amount
-             FROM payments
-             WHERE status = 'paid'
-             GROUP BY order_id
-           ) p ON p.order_id = o.order_id
            WHERE o.payment_status = 'paid'
              AND o.paid_at >= ?
              AND o.paid_at < ?
              AND o.status NOT IN ('cancelled', 'rejected')
              AND o.paid_at IS NOT NULL
+             AND EXISTS (
+               SELECT 1
+               FROM payments p
+               WHERE p.order_id = o.order_id
+                 AND p.status = 'paid'
+             )
            GROUP BY o.employee_id, u.full_name
            ORDER BY revenue DESC, o.employee_id ASC`,
           [from, to],
