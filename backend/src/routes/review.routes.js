@@ -7,16 +7,18 @@ export function createReviewRoutes({ service, requireAuth, requireRole }) {
   }
 
   const router = Router();
-  const controller = createReviewController(service);
 
-  // Xem đánh giá (Công khai)
-  router.get('/products/:productId', controller.list);
+  // Đã sửa lại cách truyền parameter cho khớp với Controller
+  const controller = createReviewController({ reviewService: service });
+
+  // Xem đánh giá (Công khai) - Đã đổi từ list -> getByProduct
+  router.get('/products/:productId', controller.getByProduct);
 
   // Gửi đánh giá mới (Cần đăng nhập)
   router.post('/', requireAuth, controller.create);
 
-  // Xóa đánh giá (Cần đăng nhập, kiểm tra quyền trong service)
-  router.delete('/:reviewId', requireAuth, controller.remove);
+  // Xóa đánh giá (Cần đăng nhập) - Đã đổi từ remove -> delete
+  router.delete('/:reviewId', requireAuth, controller.delete);
 
   return router;
 }

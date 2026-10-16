@@ -89,12 +89,8 @@ export function createOrderService({
         throw new AppError(400, 'VALIDATION_ERROR', 'delivery_method không hợp lệ');
       if (deliveryMethod === 'delivery' && !shippingAddress)
         throw new AppError(400, 'VALIDATION_ERROR', 'Địa chỉ giao hàng là bắt buộc');
-      if (paymentMethod !== 'cash')
-        throw new AppError(
-          422,
-          'BUSINESS_RULE_VIOLATION',
-          'Buổi 5 chỉ nghiệm thu phương thức cash',
-        );
+
+      // ĐÃ XÓA ĐOẠN KIỂM TRA PAYMENT_METHOD === 'CASH' Ở ĐÂY
 
       return transactionManager.run(async (connection) => {
         const cart = await orderRepository.findCartByCustomerForUpdate(customerId, connection);
