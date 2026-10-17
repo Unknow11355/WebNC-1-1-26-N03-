@@ -2,6 +2,7 @@ import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import jwt from 'jsonwebtoken';
 import { AppError } from '../errors/app-error.js';
 import { safeAudit } from './audit.service.js';
+import { createLoginLimiter } from './login-limiter.js';
 
 const SESSION_TTL_MS = 60 * 60 * 1000;
 const RESET_TTL_MS = 15 * 60 * 1000;
@@ -98,6 +99,28 @@ export function createAuthService({
   if (typeof jwtSecret !== 'string' || jwtSecret.length < 16)
     throw new TypeError('JWT_SECRET must be configured with at least 16 characters');
 
+  const loginLimiter = createLoginLimiter({
+    async onLimited(requestId) {
+      console.warn(
+        JSON.stringify({
+          event: 'login_rate_limited',
+          action: 'LOGIN_RATE_LIMITED',
+          requestId,
+          timestamp: new Date().toISOString(),
+        }),
+      );
+      if (auditRepository)
+        await safeAudit(auditRepository, {
+          actorId: null,
+          action: 'LOGIN_RATE_LIMITED',
+          entityType: 'user',
+          entityId: null,
+          outcome: 'FAILURE',
+          requestId,
+        });
+    },
+  });
+
   async function issueToken(user, executor = null, requestId = null) {
     const jti = randomUUID();
     const expiresAt = mysqlDateTimeInVietnam(new Date(Date.now() + SESSION_TTL_MS));
@@ -175,38 +198,44 @@ export function createAuthService({
           { field: 'password', issue: 'Không được để trống' },
         ]);
       }
-      const user = await userRepository.findByEmailForAuth(normalizedEmail);
-      if (!user) {
-        await auditFailure(null, requestId);
-        throw new AppError(401, 'UNAUTHENTICATED', 'Email hoặc mật khẩu không đúng');
-      }
-      if (user.status === 'locked') {
-        await auditFailure(user.user_id, requestId);
-        throw new AppError(423, 'ACCOUNT_LOCKED', 'Tài khoản đang bị khóa');
-      }
-      if (user.status !== 'active') {
-        await auditFailure(user.user_id, requestId);
-        throw new AppError(401, 'UNAUTHENTICATED', 'Tài khoản không còn hoạt động');
-      }
-      const ok = await verifyPassword(suppliedPassword, user.password_hash);
-      if (!ok) {
-        await auditFailure(user.user_id, requestId);
-        throw new AppError(401, 'UNAUTHENTICATED', 'Email hoặc mật khẩu không đúng');
-      }
+      return loginLimiter.run(
+        normalizedEmail,
+        async () => {
+          const user = await userRepository.findByEmailForAuth(normalizedEmail);
+          if (!user) {
+            await auditFailure(null, requestId);
+            throw new AppError(401, 'UNAUTHENTICATED', 'Email hoặc mật khẩu không đúng');
+          }
+          if (user.status === 'locked') {
+            await auditFailure(user.user_id, requestId);
+            throw new AppError(423, 'ACCOUNT_LOCKED', 'Tài khoản đang bị khóa');
+          }
+          if (user.status !== 'active') {
+            await auditFailure(user.user_id, requestId);
+            throw new AppError(401, 'UNAUTHENTICATED', 'Tài khoản không còn hoạt động');
+          }
+          const ok = await verifyPassword(suppliedPassword, user.password_hash);
+          if (!ok) {
+            await auditFailure(user.user_id, requestId);
+            throw new AppError(401, 'UNAUTHENTICATED', 'Email hoặc mật khẩu không đúng');
+          }
 
-      const createLogin = async (connection) => {
-        const accessToken = await issueToken(user, connection, requestId);
-        return { accessToken };
-      };
-      const result = transactionManager
-        ? await transactionManager.run(createLogin)
-        : await createLogin(null);
-      return {
-        access_token: result.accessToken,
-        token_type: 'Bearer',
-        expires_in: 3600,
-        user: publicUser(user),
-      };
+          const createLogin = async (connection) => {
+            const accessToken = await issueToken(user, connection, requestId);
+            return { accessToken };
+          };
+          const result = transactionManager
+            ? await transactionManager.run(createLogin)
+            : await createLogin(null);
+          return {
+            access_token: result.accessToken,
+            token_type: 'Bearer',
+            expires_in: 3600,
+            user: publicUser(user),
+          };
+        },
+        requestId,
+      );
     },
 
     async logout(sessionId) {

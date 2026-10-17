@@ -15,7 +15,6 @@ import { createUserRoutes } from './user.routes.js';
 import { createVoucherRoutes } from './voucher.routes.js';
 import { createLoyaltyRoutes } from './loyalty.routes.js';
 import uploadRoutes from './upload.routes.js';
-import { createReportRoutes } from './report.routes.js';
 import { createReviewRoutes } from './review.routes.js';
 import { createPaymentRoutes } from './payment.routes.js'; // Đã có
 
@@ -40,7 +39,6 @@ export function createRoutes({
   barcodeService,
   scheduleService,
   shiftService,
-  reportService,
   reviewService,
   paymentService, // Đã có
   requireAuth,
