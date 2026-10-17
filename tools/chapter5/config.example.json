@@ -1,0 +1,21 @@
+{
+  "baseUrl": "http://localhost:3000/api/v1",
+  "webUrl": "http://localhost:5173/",
+  "environment": "Local - dữ liệu thử nghiệm",
+  "revision": "Điền commit được kiểm thử",
+  "accounts": {
+    "admin": { "email": "", "password": "" },
+    "employee": { "email": "", "password": "" },
+    "customerA": { "email": "", "password": "" },
+    "customerB": { "email": "", "password": "" }
+  },
+  "from": "2026-10-01",
+  "to": "2026-10-17",
+  "allowCreateCart": false,
+  "allowUpload": false,
+  "allowRateTest": false,
+  "rateAccount": { "email": "", "wrongPassword": "Intentionally-Wrong-Test-Password!" },
+  "benchmark": false,
+  "measurementLabel": "before",
+  "conditions": "Điền CPU/RAM, DB version, số bản ghi, cache, mạng; before/after phải cùng điều kiện"
+}

@@ -2,6 +2,9 @@ import { AppError } from './app-error.js';
 
 export function normalizeError(error) {
   if (error instanceof AppError && error.status < 500) return error;
+  if (error?.code === 'LIMIT_FILE_SIZE') {
+    return new AppError(413, 'PAYLOAD_TOO_LARGE', 'Tệp tải lên vượt quá giới hạn 5 MiB');
+  }
   if (error?.type === 'entity.parse.failed') {
     return new AppError(400, 'VALIDATION_ERROR', 'Nội dung JSON không hợp lệ');
   }
