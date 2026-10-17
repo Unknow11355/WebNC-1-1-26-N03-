@@ -18,8 +18,11 @@ export const env = {
     database: process.env.DB_NAME ?? 'mini_supermarket',
   },
   jwtSecret: process.env.JWT_SECRET ?? '',
-  corsOrigins: (process.env.CORS_ORIGINS ?? 'http://localhost:5173')
+  corsOrigins: (process.env.CORS_ORIGINS ?? 'http://localhost:5173,http://127.0.0.1:5173')
     .split(',')
     .map((value) => value.trim())
-    .filter(Boolean),
+    .filter(Boolean)
+    .concat(process.env.CODESPACE_NAME
+      ? [`https://${process.env.CODESPACE_NAME}-5173.${process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN || 'app.github.dev'}`]
+      : []),
 };
