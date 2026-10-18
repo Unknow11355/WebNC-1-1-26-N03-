@@ -38,7 +38,7 @@ export function createPaymentController(service) {
 
   return {
     async createVnpay(req, res) {
-      const userId = req.user.user_id;
+      const userId = req.auth.userId;
       const orderId = Number(req.body.order_id || req.body.orderId);
       if (!orderId) return res.status(400).json({ success: false, message: 'Thiếu mã đơn hàng' });
 
