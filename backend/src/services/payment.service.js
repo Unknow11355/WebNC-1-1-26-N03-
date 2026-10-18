@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { AppError } from '../errors/app-error.js';
 import { invalidateReportCache } from '../cache/report-cache.js';
+import { env } from '../config/env.js';
 
 const DEFAULT_PAYMENT_URL = 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html';
 
@@ -26,7 +27,10 @@ export function createPaymentService({
     return Object.keys(params)
       .filter((key) => params[key] !== undefined && params[key] !== null && params[key] !== '')
       .sort()
-      .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(String(params[key]))}`)
+      .map(
+        (key) =>
+          `${encodeURIComponent(key)}=${encodeURIComponent(String(params[key])).replace(/%20/g, '+')}`,
+      )
       .join('&');
   }
 
@@ -201,10 +205,10 @@ export function createPaymentService({
 
 function defaultConfig() {
   return {
-    tmnCode: process.env.VNP_TMN_CODE,
-    hashSecret: process.env.VNP_HASH_SECRET,
-    paymentUrl: process.env.VNP_URL || DEFAULT_PAYMENT_URL,
-    returnUrl: process.env.VNP_RETURN_URL,
-    ipnUrl: process.env.VNP_IPN_URL,
+    tmnCode: env.vnpTmnCode,
+    hashSecret: env.vnpHashSecret,
+    paymentUrl: env.vnpUrl || DEFAULT_PAYMENT_URL,
+    returnUrl: env.vnpReturnUrl,
+    ipnUrl: env.vnpIpnUrl,
   };
 }

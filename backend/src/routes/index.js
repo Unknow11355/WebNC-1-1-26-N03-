@@ -16,7 +16,7 @@ import { createVoucherRoutes } from './voucher.routes.js';
 import { createLoyaltyRoutes } from './loyalty.routes.js';
 import uploadRoutes from './upload.routes.js';
 import { createReviewRoutes } from './review.routes.js';
-import { createPaymentRoutes } from './payment.routes.js'; // Đã có
+import { createPaymentRoutes } from './payment.routes.js';
 
 function hasAuth(requireAuth, requireRole) {
   return typeof requireAuth === 'function' && typeof requireRole === 'function';
@@ -40,7 +40,7 @@ export function createRoutes({
   scheduleService,
   shiftService,
   reviewService,
-  paymentService, // Đã có
+  paymentService,
   requireAuth,
   requireRole,
 } = {}) {
@@ -128,14 +128,12 @@ export function createRoutes({
     );
   }
 
-  // <--- ĐÂY LÀ ĐOẠN BẠN CÒN THIẾU VÀ TÔI ĐÃ THÊM VÀO --->
   if (paymentService && hasAuth(requireAuth, requireRole)) {
     router.use(
       '/payments',
       createPaymentRoutes({ service: paymentService, requireAuth, requireRole }),
     );
   }
-  // <--------------------------------------------------->
 
   if (hasAuth(requireAuth, requireRole)) {
     router.post('/products', requireAuth, requireRole('admin'), products.create);

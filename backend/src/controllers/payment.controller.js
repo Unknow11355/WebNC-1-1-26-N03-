@@ -11,6 +11,7 @@ export function createPaymentController(service) {
   function renderReturnHtml({ title, message, paymentStatus, orderId }) {
     const statusColor =
       paymentStatus === 'paid' ? '#1B7F4D' : paymentStatus === 'pending' ? '#B45309' : '#B91C1C';
+    const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
     return `<!DOCTYPE html>
     <html lang="vi">
     <head>
@@ -30,7 +31,7 @@ export function createPaymentController(service) {
         <h1>${title}</h1>
         <p>${message}</p>
         <p>Mã đơn hàng: <strong>#${orderId || '-'}</strong></p>
-        <a href="/#orders" class="btn">Quay lại quản lý đơn hàng</a>
+        <a href="${frontendUrl}/#orders" class="btn">Quay lại quản lý đơn hàng</a>
       </div>
     </body>
     </html>`;
