@@ -2,86 +2,94 @@ export function createPaymentRepository(db) {
   if (!db) throw new TypeError('Payment repository requires a database executor');
 
   return {
-    async getOrderForPayment(orderId, executor = db) {
-      const [rows] = await executor.execute(`SELECT * FROM orders WHERE order_id = ? LIMIT 1`, [
-        orderId,
-      ]);
+    async getOrderForPayment(orderId, executor = db, lock = false) {
+      const [rows] = await executor.execute(
+        `SELECT order_id, customer_id, final_amount, status, order_status,
+                payment_status, payment_method, transaction_id, paid_at
+         FROM orders WHERE order_id = ? LIMIT 1${lock ? ' FOR UPDATE' : ''}`,
+        [orderId],
+      );
       return rows[0] ?? null;
     },
 
-    async insertPayment(orderId, method, amount, status, transactionId, executor = db) {
-      // Tự động kiểm tra xem DB có cột transaction_id không để lưu tránh lỗi
-      const [cols] = await executor.execute(
-        `SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'payments' AND COLUMN_NAME = 'transaction_id'`,
+    async createVnpayAttempt(orderId, transactionId, amount, executor = db) {
+      const [pending] = await executor.execute(
+        `SELECT payment_id
+         FROM payments
+         WHERE order_id = ? AND method = 'vnpay'
+           AND status = 'pending' AND transaction_id IS NULL
+         ORDER BY payment_id ASC LIMIT 1 FOR UPDATE`,
+        [orderId],
       );
-      if (cols.length > 0) {
+      if (pending[0]) {
         await executor.execute(
-          `INSERT INTO payments (order_id, method, amount, status, transaction_id, paid_at) VALUES (?, ?, ?, ?, ?, IF(? = 'paid', NOW(), NULL))`,
-          [orderId, method, amount, status, transactionId, status],
+          `UPDATE payments
+           SET transaction_id = ?, amount = ?
+           WHERE payment_id = ? AND transaction_id IS NULL`,
+          [transactionId, amount, pending[0].payment_id],
         );
-      } else {
-        await executor.execute(
-          `INSERT INTO payments (order_id, method, amount, status, paid_at) VALUES (?, ?, ?, ?, IF(? = 'paid', NOW(), NULL))`,
-          [orderId, method, amount, status, status],
-        );
+        return Number(pending[0].payment_id);
       }
+
+      const [result] = await executor.execute(
+        `INSERT INTO payments (order_id, method, amount, status, transaction_id)
+         VALUES (?, 'vnpay', ?, 'pending', ?)`,
+        [orderId, amount, transactionId],
+      );
+      return Number(result.insertId);
     },
 
-    async markOrderPaid(orderId, transactionId, gateway = 'vnpay', executor = db) {
-      const order = await this.getOrderForPayment(orderId, executor);
-      if (!order) return { ok: false, message: 'Order not found' };
-
-      // CHỐNG DOUBLE PAYMENT (Yêu cầu quan trọng của CN12)
-      if (['paid', 'success'].includes(String(order.payment_status).toLowerCase())) {
-        return { ok: true, alreadyPaid: true, order };
-      }
-
-      const setParts = ["payment_status = 'paid'", 'payment_method = ?', "status = 'completed'"];
-      const params = [gateway];
-
-      const [cols] = await executor.execute(
-        `SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'orders' AND COLUMN_NAME = 'transaction_id'`,
+    async findVnpayAttempt(orderId, transactionId, executor = db, lock = false) {
+      const [rows] = await executor.execute(
+        `SELECT payment_id, order_id, amount, status, transaction_id
+         FROM payments
+         WHERE order_id = ? AND method = 'vnpay' AND transaction_id = ?
+         LIMIT 1${lock ? ' FOR UPDATE' : ''}`,
+        [orderId, transactionId],
       );
-      if (cols.length > 0) {
-        setParts.push('transaction_id = ?');
-        params.push(transactionId);
-      }
-      params.push(orderId);
-
-      await executor.execute(`UPDATE orders SET ${setParts.join(', ')} WHERE order_id = ?`, params);
-      await this.insertPayment(
-        orderId,
-        gateway,
-        order.final_amount,
-        'paid',
-        transactionId,
-        executor,
-      );
-
-      return { ok: true, alreadyPaid: false, order };
+      return rows[0] ?? null;
     },
 
-    async markOrderFailed(orderId, transactionId, gateway = 'vnpay', executor = db) {
-      const order = await this.getOrderForPayment(orderId, executor);
-      if (!order) return { ok: false };
-
-      if (['paid', 'success'].includes(String(order.payment_status).toLowerCase())) {
-        return { ok: true, alreadyPaid: true, order };
-      }
-
-      await executor.execute(`UPDATE orders SET payment_status = 'failed' WHERE order_id = ?`, [
-        orderId,
-      ]);
-      await this.insertPayment(
-        orderId,
-        gateway,
-        order.final_amount,
-        'failed',
-        transactionId,
-        executor,
+    async markOrderPaid(order, attempt, transactionId, gateway = 'vnpay', executor = db) {
+      const [paymentResult] = await executor.execute(
+        `UPDATE payments
+         SET status = 'paid', paid_at = CURRENT_TIMESTAMP
+         WHERE payment_id = ? AND status = 'pending'`,
+        [attempt.payment_id],
       );
+      if (paymentResult.affectedRows !== 1) return { ok: false, alreadyPaid: true, order };
 
-      return { ok: true, order };
+      const [orderResult] = await executor.execute(
+        `UPDATE orders
+         SET payment_status = 'paid', payment_method = ?, transaction_id = ?,
+             paid_at = CURRENT_TIMESTAMP
+         WHERE order_id = ? AND payment_status <> 'paid'
+           AND status NOT IN ('cancelled', 'rejected')
+           AND order_status NOT IN ('cancelled', 'rejected')`,
+        [gateway, transactionId, order.order_id],
+      );
+      if (orderResult.affectedRows !== 1) {
+        throw new Error('PAYMENT_ORDER_STATE_CHANGED');
+      }
+      return { ok: true, alreadyPaid: false };
+    },
+
+    async markOrderFailed(order, attempt, executor = db) {
+      const [paymentResult] = await executor.execute(
+        `UPDATE payments SET status = 'failed'
+         WHERE payment_id = ? AND status = 'pending'`,
+        [attempt.payment_id],
+      );
+      if (paymentResult.affectedRows !== 1) return { ok: true, alreadyProcessed: true };
+
+      await executor.execute(
+        `UPDATE orders SET payment_status = 'failed'
+         WHERE order_id = ? AND payment_status <> 'paid'
+           AND status NOT IN ('cancelled', 'rejected')
+           AND order_status NOT IN ('cancelled', 'rejected')`,
+        [order.order_id],
+      );
+      return { ok: true, alreadyProcessed: false };
     },
   };
 }

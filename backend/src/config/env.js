@@ -29,9 +29,9 @@ export const env = {
           ]
         : [],
     ),
-  vnpTmnCode: process.env.VNP_TMNCODE ?? '',
-  vnpHashSecret: process.env.VNP_HASHSECRET ?? '',
+  vnpTmnCode: process.env.VNP_TMN_CODE ?? '',
+  vnpHashSecret: process.env.VNP_HASH_SECRET ?? '',
   vnpUrl: process.env.VNP_URL ?? '',
-  vnpApiUrl: process.env.VNP_API_URL ?? '',
   vnpReturnUrl: process.env.VNP_RETURN_URL ?? '',
+  vnpIpnUrl: process.env.VNP_IPN_URL ?? '',
 };
