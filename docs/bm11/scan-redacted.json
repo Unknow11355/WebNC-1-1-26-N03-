@@ -1,0 +1,218 @@
+{
+  "timestamp": "2026-10-18T16:17:47.839Z",
+  "head": "a2bbae2552c1fffc11d440abe7760516f24091e3",
+  "refs": [
+    "refs/heads/Linh/chucnang/calam 341a5f613c520dc94ad8472a9f3954fa3c403874",
+    "refs/heads/Linh/chucnang/capnhathoso 66aae9b6548da144cbffd0d0f2163591be0c5bbb",
+    "refs/heads/Linh/chucnang/mavach-lichnhanvien 050960fc78959fc5430f71248558381ac11e9f8b",
+    "refs/heads/Linh/giaodien/chucnanghienco 16fa95671378a5b799984d5e8b2865246900216a",
+    "refs/heads/Linh/v1/buoi4 f6edc4117daab398fd7817c422366f3c92ea2387",
+    "refs/heads/Linh/v1/buoi5 32674542968f6b5fd93fc3ab7ec2c3be7c1f7784",
+    "refs/heads/Linh/v1/buoi6 d56d0ef77202e917377de0b3b909d5e2f2a16d3b",
+    "refs/heads/Linh/v1/buoi7 14bc6ad4e085cfea748fe0a7c89784ba62dc811a",
+    "refs/heads/Vinh/v2-v3/buoi5 7700c4fe7db2de966966484fe15be1241d06aa14",
+    "refs/heads/Vinh/v2-v3/buoi6 0988371609cc1176930d669d5e43b91f0857bf82",
+    "refs/heads/codex/checklist-buoi10 a2bbae2552c1fffc11d440abe7760516f24091e3",
+    "refs/heads/codex/linh-hotro-vinh-buoi9 bf37e0cc52ba84fdf26db3e6de4ce130daff43ee",
+    "refs/heads/main 42fddd301a87815ae05ecb6cbcff979c84bde08c",
+    "refs/remotes/origin/HEAD a2bbae2552c1fffc11d440abe7760516f24091e3",
+    "refs/remotes/origin/Linh/v1/buoi3 18a5292332a7cd80e3d132d6a2dae0b8f7c371d7",
+    "refs/remotes/origin/Linh/v1/buoi4 c3171095e942874380c9b4707895e23c74d93472",
+    "refs/remotes/origin/Linh/v1/buoi5 32674542968f6b5fd93fc3ab7ec2c3be7c1f7784",
+    "refs/remotes/origin/Linh/v1/buoi6 e8f02fe1eaeb0209c0ee8a844c2959ed82b4c582",
+    "refs/remotes/origin/Vinh/v2-v3/buoi4 9778540258ebd890958795dae10133b71485be82",
+    "refs/remotes/origin/Vinh/v2-v3/buoi5 7700c4fe7db2de966966484fe15be1241d06aa14",
+    "refs/remotes/origin/Vinh/v2-v3/buoi6 0988371609cc1176930d669d5e43b91f0857bf82",
+    "refs/remotes/origin/develop 42fddd301a87815ae05ecb6cbcff979c84bde08c",
+    "refs/remotes/origin/main a2bbae2552c1fffc11d440abe7760516f24091e3"
+  ],
+  "reachableCommits": 83,
+  "uniqueBlobs": 499,
+  "scannedTextBlobs": 482,
+  "skippedBinary": 17,
+  "skippedLarge": 0,
+  "findings": [
+    {
+      "rule": "HARDCODED_CREDENTIAL_CANDIDATE",
+      "path": "backend/scripts/phone-demo.js",
+      "line": 45,
+      "blob": "3a07512d0b961cef94b6080841cd21dc2e88cd91",
+      "representativeCommit": "a2bbae2552c1fffc11d440abe7760516f24091e3",
+      "presentInHead": true,
+      "context": "test-demo-or-documentation-review",
+      "value": "[REDACTED]"
+    },
+    {
+      "rule": "PLACEHOLDER_OR_TEST_SECRET",
+      "path": "backend/test/auth.middleware.test.js",
+      "line": 7,
+      "blob": "0cc258f114839fef9f1672af70ab0baa61ad9cd0",
+      "representativeCommit": "a2bbae2552c1fffc11d440abe7760516f24091e3",
+      "presentInHead": true,
+      "context": "test-demo-or-documentation-review",
+      "value": "[REDACTED]"
+    },
+    {
+      "rule": "PLACEHOLDER_OR_TEST_SECRET",
+      "path": "backend/test/auth.service.test.js",
+      "line": 8,
+      "blob": "40a4ad886293b446d8eab136f54b3e384a1f6c1e",
+      "representativeCommit": "a2bbae2552c1fffc11d440abe7760516f24091e3",
+      "presentInHead": true,
+      "context": "test-demo-or-documentation-review",
+      "value": "[REDACTED]"
+    },
+    {
+      "rule": "HARDCODED_CREDENTIAL_CANDIDATE",
+      "path": "backend/test/auth.service.test.js",
+      "line": 44,
+      "blob": "40a4ad886293b446d8eab136f54b3e384a1f6c1e",
+      "representativeCommit": "a2bbae2552c1fffc11d440abe7760516f24091e3",
+      "presentInHead": true,
+      "context": "test-demo-or-documentation-review",
+      "value": "[REDACTED]"
+    },
+    {
+      "rule": "PLACEHOLDER_OR_TEST_SECRET",
+      "path": "backend/test/auth.service.test.js",
+      "line": 53,
+      "blob": "40a4ad886293b446d8eab136f54b3e384a1f6c1e",
+      "representativeCommit": "a2bbae2552c1fffc11d440abe7760516f24091e3",
+      "presentInHead": true,
+      "context": "test-demo-or-documentation-review",
+      "value": "[REDACTED]"
+    },
+    {
+      "rule": "HARDCODED_CREDENTIAL_CANDIDATE",
+      "path": "backend/test/buoi7-vinh.service.test.js",
+      "line": 16,
+      "blob": "8651b97cabc3b3967b0ffbe1e1878a19f3b7240e",
+      "representativeCommit": "a2bbae2552c1fffc11d440abe7760516f24091e3",
+      "presentInHead": true,
+      "context": "test-demo-or-documentation-review",
+      "value": "[REDACTED]"
+    },
+    {
+      "rule": "HARDCODED_CREDENTIAL_CANDIDATE",
+      "path": "backend/test/buoi7-vinh.service.test.js",
+      "line": 53,
+      "blob": "8651b97cabc3b3967b0ffbe1e1878a19f3b7240e",
+      "representativeCommit": "a2bbae2552c1fffc11d440abe7760516f24091e3",
+      "presentInHead": true,
+      "context": "test-demo-or-documentation-review",
+      "value": "[REDACTED]"
+    },
+    {
+      "rule": "PLACEHOLDER_OR_TEST_SECRET",
+      "path": "backend/test/payment.service.test.js",
+      "line": 9,
+      "blob": "a4cfc9648594a771b55ed6cce64d42d374f7c03d",
+      "representativeCommit": "a2bbae2552c1fffc11d440abe7760516f24091e3",
+      "presentInHead": true,
+      "context": "test-demo-or-documentation-review",
+      "value": "[REDACTED]"
+    },
+    {
+      "rule": "PLACEHOLDER_OR_TEST_SECRET",
+      "path": "backend/test/profile.test.js",
+      "line": 37,
+      "blob": "9314c658808269ce9ae99cbb22cbf11fe5799e44",
+      "representativeCommit": "a2bbae2552c1fffc11d440abe7760516f24091e3",
+      "presentInHead": true,
+      "context": "test-demo-or-documentation-review",
+      "value": "[REDACTED]"
+    },
+    {
+      "rule": "HARDCODED_CREDENTIAL_CANDIDATE",
+      "path": "backend/test/session-cookie.test.js",
+      "line": 10,
+      "blob": "8cc434d2e4da39992632b6f9d6940c3fcfcb3bcb",
+      "representativeCommit": "a2bbae2552c1fffc11d440abe7760516f24091e3",
+      "presentInHead": true,
+      "context": "test-demo-or-documentation-review",
+      "value": "[REDACTED]"
+    },
+    {
+      "rule": "HARDCODED_CREDENTIAL_CANDIDATE",
+      "path": "backend/test/session-cookie.test.js",
+      "line": 50,
+      "blob": "8cc434d2e4da39992632b6f9d6940c3fcfcb3bcb",
+      "representativeCommit": "a2bbae2552c1fffc11d440abe7760516f24091e3",
+      "presentInHead": true,
+      "context": "test-demo-or-documentation-review",
+      "value": "[REDACTED]"
+    },
+    {
+      "rule": "HARDCODED_CREDENTIAL_CANDIDATE",
+      "path": "docs/buoi9/vinh/README.md",
+      "line": 63,
+      "blob": "2a834574d18b80231730e6019c411af950ef14d7",
+      "representativeCommit": "a2bbae2552c1fffc11d440abe7760516f24091e3",
+      "presentInHead": true,
+      "context": "test-demo-or-documentation-review",
+      "value": "[REDACTED]"
+    },
+    {
+      "rule": "HARDCODED_CREDENTIAL_CANDIDATE",
+      "path": "tools/chapter5/runner.test.mjs",
+      "line": 9,
+      "blob": "05f3157ba7e223be1ce0d7116418a5a0202dbf09",
+      "representativeCommit": "a2bbae2552c1fffc11d440abe7760516f24091e3",
+      "presentInHead": true,
+      "context": "test-demo-or-documentation-review",
+      "value": "[REDACTED]"
+    },
+    {
+      "rule": "PLACEHOLDER_OR_TEST_SECRET",
+      "path": "backend/test/auth.middleware.test.js",
+      "line": 7,
+      "blob": "7528b74763c1eea6496f5a4bf5be1f35e16b6e42",
+      "representativeCommit": "3431145f476d0dd0b40d2da40614a644c824cd7e",
+      "presentInHead": false,
+      "context": "test-demo-or-documentation-review",
+      "value": "[REDACTED]"
+    },
+    {
+      "rule": "HARDCODED_CREDENTIAL_CANDIDATE",
+      "path": "backend/src/services/payment.service.js",
+      "line": 11,
+      "blob": "93ced7cbdaeee674a7c6a00bf8beca6f4208a509",
+      "representativeCommit": "ae1dd6d49300160d75d6beea0525b4c9e82c5c23",
+      "presentInHead": false,
+      "context": "review-required",
+      "value": "[REDACTED]"
+    },
+    {
+      "rule": "HARDCODED_CREDENTIAL_CANDIDATE",
+      "path": "backend/src/services/payment.service.js",
+      "line": 11,
+      "blob": "ad7b61f727b69f077e8d7d4d3ead395906fd910b",
+      "representativeCommit": "94d559ec45dddf0703014b0d4bbc760c84566507",
+      "presentInHead": false,
+      "context": "review-required",
+      "value": "[REDACTED]"
+    },
+    {
+      "rule": "JWT_LITERAL",
+      "path": "backend/test/test_concurrency.cjs",
+      "line": 6,
+      "blob": "e7734a758e85c82fe1ccd30c37f54e964052e043",
+      "representativeCommit": "48076bb290b18139c4778f529a34a783d62669d4",
+      "presentInHead": false,
+      "context": "test-demo-or-documentation-review",
+      "value": "[REDACTED]"
+    },
+    {
+      "rule": "PLACEHOLDER_OR_TEST_SECRET",
+      "path": "backend/test/auth.middleware.test.js",
+      "line": 7,
+      "blob": "eee9cba0f1533ddc0aeb74319e0f0fcaef8695e7",
+      "representativeCommit": "4497201468b392e7ed53970f7e2156397557caa0",
+      "presentInHead": false,
+      "context": "test-demo-or-documentation-review",
+      "value": "[REDACTED]"
+    }
+  ],
+  "scope": "All commits reachable from fetched local refs; unique text blobs <=2 MiB. No credential values are emitted.",
+  "limitations": "Heuristic scan, not proof of absence. Binary/large blobs, unreachable/deleted remote refs, untracked files and encoded secrets are not inspected. Never tests credentials against providers."
+}
