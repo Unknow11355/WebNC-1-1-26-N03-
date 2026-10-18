@@ -14,5 +14,11 @@ export function createReportController(service) {
     async employees(req, res) {
       res.status(200).json({ success: true, ...(await service.employees(req.auth, req.query)) });
     },
+    async employeeActivity(req, res) {
+      res.status(200).json({
+        success: true,
+        ...(await service.employeeActivity(req.auth, req.params.employeeId, req.query)),
+      });
+    },
   };
 }
