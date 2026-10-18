@@ -22,7 +22,11 @@ export const env = {
     .split(',')
     .map((value) => value.trim())
     .filter(Boolean)
-    .concat(process.env.CODESPACE_NAME
-      ? [`https://${process.env.CODESPACE_NAME}-5173.${process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN || 'app.github.dev'}`]
-      : []),
+    .concat(
+      process.env.CODESPACE_NAME
+        ? [
+            `https://${process.env.CODESPACE_NAME}-5173.${process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN || 'app.github.dev'}`,
+          ]
+        : [],
+    ),
 };

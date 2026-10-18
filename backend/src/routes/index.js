@@ -124,7 +124,7 @@ export function createRoutes({
   if (reviewService && hasAuth(requireAuth, requireRole)) {
     router.use(
       '/reviews',
-      createReviewRoutes({ service: reviewService, requireAuth, requireRole })
+      createReviewRoutes({ service: reviewService, requireAuth, requireRole }),
     );
   }
 
@@ -132,7 +132,7 @@ export function createRoutes({
   if (paymentService && hasAuth(requireAuth, requireRole)) {
     router.use(
       '/payments',
-      createPaymentRoutes({ service: paymentService, requireAuth, requireRole })
+      createPaymentRoutes({ service: paymentService, requireAuth, requireRole }),
     );
   }
   // <--------------------------------------------------->
