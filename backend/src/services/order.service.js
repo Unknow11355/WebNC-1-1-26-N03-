@@ -1,5 +1,6 @@
 import { AppError } from '../errors/app-error.js';
 import { invalidateReportCache } from '../cache/report-cache.js';
+import { calculateVoucherDiscount } from './voucher.service.js';
 
 function id(value, field) {
   const n = Number(value);
@@ -30,32 +31,24 @@ export function createOrderService({
     return id(auth?.userId, 'user_id');
   }
 
-  async function getVoucher(rawValue, total, connection) {
+  async function getVoucher(rawValue, total, customerId, connection) {
     if (rawValue === null || rawValue === undefined || rawValue === '')
       return { voucher: null, discountAmount: 0 };
     const raw = String(rawValue).trim();
     const voucher = /^\d+$/.test(raw)
       ? await voucherRepository.findById(Number(raw), connection, true)
       : await voucherRepository.findByCode(raw.toUpperCase(), connection, true);
-    if (!voucher) throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy voucher');
-    if (voucher.status !== 'active')
-      throw new AppError(422, 'BUSINESS_RULE_VIOLATION', 'Voucher không hoạt động');
-    if (voucher.expiry_date && new Date(voucher.expiry_date) < new Date())
-      throw new AppError(410, 'EXPIRED', 'Voucher đã hết hạn');
-    if (voucher.usage_limit !== null && Number(voucher.used_count) >= Number(voucher.usage_limit))
-      throw new AppError(409, 'CONFLICT', 'Voucher đã hết lượt sử dụng');
-    if (total < Number(voucher.min_order_amount))
-      throw new AppError(
-        422,
-        'BUSINESS_RULE_VIOLATION',
-        'Chưa đạt giá trị đơn tối thiểu của voucher',
-      );
-    let discount =
-      voucher.discount_type === 'percent'
-        ? (total * Number(voucher.discount_value)) / 100
-        : Number(voucher.discount_value);
-    if (voucher.max_discount !== null) discount = Math.min(discount, Number(voucher.max_discount));
-    return { voucher, discountAmount: Math.min(discount, total) };
+    const result = calculateVoucherDiscount(voucher, total);
+    if (
+      !(await voucherRepository.findCustomerVoucher(
+        customerId,
+        result.voucher.voucher_id,
+        connection,
+        true,
+      ))
+    )
+      throw new AppError(403, 'FORBIDDEN', 'Bạn cần lưu voucher trước khi sử dụng');
+    return { voucher: result.voucher, discountAmount: result.discount_amount };
   }
 
   async function detail(auth, orderId, executor) {
@@ -119,7 +112,12 @@ export function createOrderService({
           normalizedItems.push({ product_id: Number(item.product_id), quantity, price, subtotal });
         }
         const voucherValue = input?.voucher_id ?? input?.voucher_code ?? null;
-        const { voucher, discountAmount } = await getVoucher(voucherValue, totalAmount, connection);
+        const { voucher, discountAmount } = await getVoucher(
+          voucherValue,
+          totalAmount,
+          customerId,
+          connection,
+        );
         const pointsUsed = Number(input?.points_used ?? 0);
         if (!Number.isSafeInteger(pointsUsed) || pointsUsed < 0)
           throw new AppError(400, 'VALIDATION_ERROR', 'points_used phải là số nguyên không âm');
@@ -184,7 +182,10 @@ export function createOrderService({
           },
           connection,
         );
-        if (voucher) await voucherRepository.incrementUsed(voucher.voucher_id, connection);
+        if (voucher) {
+          await voucherRepository.incrementUsed(voucher.voucher_id, connection);
+          await voucherRepository.incrementCustomerUsed(customerId, voucher.voucher_id, connection);
+        }
         await orderRepository.clearCart(cart.cart_id, connection);
         return detail({ userId: customerId, role: 'customer' }, order.order_id, connection);
       });
@@ -279,7 +280,15 @@ export function createOrderService({
             Number(item.quantity),
             connection,
           );
-        if (order.voucher_id) await voucherRepository.decrementUsed(order.voucher_id, connection);
+        if (order.voucher_id) {
+          await voucherRepository.decrementUsed(order.voucher_id, connection);
+          if (order.customer_id)
+            await voucherRepository.decrementCustomerUsed(
+              order.customer_id,
+              order.voucher_id,
+              connection,
+            );
+        }
         if (loyaltyService) {
           await loyaltyService.releaseForOrder({
             customerId: order.customer_id,

@@ -89,7 +89,7 @@ const inventoryService = createInventoryService({
   transactionManager,
   auditRepository,
 });
-const voucherService = createVoucherService(voucherRepository);
+const voucherService = createVoucherService(voucherRepository, transactionManager);
 const loyaltyService = createLoyaltyService({ repository: loyaltyRepository });
 const notificationService = createNotificationService(notificationRepository);
 const orderService = createOrderService({
@@ -102,6 +102,7 @@ const orderService = createOrderService({
 const posService = createPosService({
   repository: posRepository,
   loyaltyService,
+  voucherRepository,
   transactionManager,
 });
 const reportService = createReportService(reportRepository);

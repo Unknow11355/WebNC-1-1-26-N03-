@@ -57,7 +57,20 @@ export function createReportRepository(db) {
            ORDER BY report_date ASC`,
           [from, to],
         );
-        return { summary: summary[0], series };
+        const [quality] = await connection.execute(
+          `SELECT COUNT(*) AS paid_without_paid_at
+           FROM orders o
+           WHERE o.payment_status = 'paid'
+             AND o.status NOT IN ('cancelled', 'rejected')
+             AND o.paid_at IS NULL
+             AND EXISTS (
+               SELECT 1
+               FROM payments p
+               WHERE p.order_id = o.order_id
+                 AND p.status = 'paid'
+             )`,
+        );
+        return { summary: summary[0], series, data_quality: quality[0] };
       }, executor);
     },
 
@@ -110,6 +123,66 @@ export function createReportRepository(db) {
           [from, to],
         );
         return rows;
+      }, executor);
+    },
+
+    async employeeActivity(
+      employeeId,
+      { fromTimestamp: from, toTimestamp: to, limit, offset },
+      executor = null,
+    ) {
+      return withConnection(async (connection) => {
+        const [[employeeRows], [orders], [orderCounts], [shifts], [shiftCounts]] =
+          await Promise.all([
+            connection.execute(
+              `SELECT u.user_id, u.full_name, u.email, u.status, u.employment_type
+             FROM users u JOIN roles r ON r.role_id = u.role_id
+             WHERE u.user_id = ? AND r.role_name = 'employee' LIMIT 1`,
+              [employeeId],
+            ),
+            connection.execute(
+              `SELECT o.order_id, o.order_type, o.status, o.payment_status,
+                    o.total_amount, o.discount_amount, o.points_discount, o.final_amount,
+                    o.payment_method, o.shift_id,
+                    COALESCE(o.confirmed_at, o.paid_at, o.created_at) AS handled_at,
+                    o.rejection_reason
+             FROM orders o
+             WHERE o.employee_id = ?
+               AND COALESCE(o.confirmed_at, o.paid_at, o.created_at) >= ?
+               AND COALESCE(o.confirmed_at, o.paid_at, o.created_at) < ?
+             ORDER BY handled_at DESC, o.order_id DESC
+             LIMIT ? OFFSET ?`,
+              [employeeId, from, to, String(limit), String(offset)],
+            ),
+            connection.execute(
+              `SELECT COUNT(*) AS total FROM orders o
+             WHERE o.employee_id = ?
+               AND COALESCE(o.confirmed_at, o.paid_at, o.created_at) >= ?
+               AND COALESCE(o.confirmed_at, o.paid_at, o.created_at) < ?`,
+              [employeeId, from, to],
+            ),
+            connection.execute(
+              `SELECT shift_id, DATE_FORMAT(shift_date, '%Y-%m-%d') AS shift_date,
+                    start_time, end_time, status,
+                    DATE_FORMAT(ended_at, '%Y-%m-%d %H:%i:%s') AS ended_at, note
+             FROM work_shifts
+             WHERE employee_id = ? AND shift_date >= ? AND shift_date < ?
+             ORDER BY shift_date DESC, start_time DESC, shift_id DESC`,
+              [employeeId, from.slice(0, 10), to.slice(0, 10)],
+            ),
+            connection.execute(
+              `SELECT COUNT(*) AS total FROM work_shifts
+             WHERE employee_id = ? AND shift_date >= ? AND shift_date < ?`,
+              [employeeId, from.slice(0, 10), to.slice(0, 10)],
+            ),
+          ]);
+        return {
+          employee: employeeRows[0] ?? null,
+          orders,
+          orderTotal: Number(orderCounts[0]?.total ?? 0),
+          shifts,
+          shiftTotal: Number(shiftCounts[0]?.total ?? 0),
+        };
       }, executor);
     },
   };
