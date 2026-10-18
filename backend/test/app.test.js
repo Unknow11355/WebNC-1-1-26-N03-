@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createApp } from '../src/app.js';
 import { createProductRepository } from '../src/repositories/product.repository.js';
+import { AppError } from '../src/errors/app-error.js';
 
 async function withApi(t, repository) {
   const server = createApp({ productRepository: repository }).listen(0, '127.0.0.1');
@@ -70,4 +71,56 @@ test('unexpected database errors do not expose SQL or stack traces', async (t) =
   assert.ok(!body.includes('SELECT'));
   assert.ok(!body.includes('stack'));
   assert.equal(JSON.parse(body).error.code, 'INTERNAL_ERROR');
+});
+
+test('report HTTP routes pass filters and activity employee ID through admin-only guards', async (t) => {
+  const calls = [];
+  const reportService = Object.fromEntries(
+    ['revenue', 'products', 'employees', 'employeeActivity'].map((name) => [
+      name,
+      async (...args) => {
+        calls.push([name, ...args]);
+        return { data: { report: name }, meta: { filter: args.at(-1) } };
+      },
+    ]),
+  );
+  const requireAuth = (req, res, next) => {
+    req.auth = {
+      userId: 1,
+      role: req.get('authorization') === 'Bearer admin' ? 'admin' : 'employee',
+    };
+    next();
+  };
+  const requireRole =
+    (...roles) =>
+    (req, res, next) =>
+      roles.includes(req.auth.role)
+        ? next()
+        : next(new AppError(403, 'FORBIDDEN', 'Chỉ admin được xem báo cáo'));
+  const server = createApp({
+    productRepository: { list: async () => ({ rows: [], total: 0 }) },
+    reportService,
+    requireAuth,
+    requireRole,
+  }).listen(0, '127.0.0.1');
+  await new Promise((resolve) => server.once('listening', resolve));
+  t.after(() => new Promise((resolve) => server.close(resolve)));
+  const base = `http://127.0.0.1:${server.address().port}/api/v1/reports`;
+  const headers = { authorization: 'Bearer admin' };
+
+  for (const path of ['/revenue', '/products', '/employees', '/employees/12/activity']) {
+    const response = await fetch(`${base}${path}?from=2026-10-01&to=2026-10-02`, { headers });
+    assert.equal(response.status, 200, path);
+  }
+  assert.equal(calls.length, 4);
+  assert.equal(calls[3][0], 'employeeActivity');
+  assert.deepEqual(calls[3][1], { userId: 1, role: 'admin' });
+  assert.equal(calls[3][2], '12');
+  assert.deepEqual({ ...calls[3][3] }, { from: '2026-10-01', to: '2026-10-02' });
+
+  const denied = await fetch(`${base}/revenue?from=2026-10-01&to=2026-10-02`, {
+    headers: { authorization: 'Bearer employee' },
+  });
+  assert.equal(denied.status, 403);
+  assert.equal(calls.length, 4);
 });
