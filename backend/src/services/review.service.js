@@ -21,13 +21,15 @@ export function createReviewService({ reviewRepository }) {
       }
 
       // Bộ lọc cơ bản chống XSS
-      const cleanComment = data.comment ? String(data.comment).replace(/</g, "&lt;").replace(/>/g, "&gt;") : '';
+      const cleanComment = data.comment
+        ? String(data.comment).replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        : '';
 
       const result = await reviewRepository.create({
         product_id: productId,
         user_id: userId,
         rating: rating,
-        comment: cleanComment
+        comment: cleanComment,
       });
 
       return result;
@@ -49,6 +51,6 @@ export function createReviewService({ reviewRepository }) {
 
       await reviewRepository.delete(Number(reviewId));
       return { success: true };
-    }
+    },
   };
 }
