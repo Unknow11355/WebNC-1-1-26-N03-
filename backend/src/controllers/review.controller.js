@@ -26,6 +26,6 @@ export function createReviewController({ reviewService }) {
       } catch (err) {
         next(err);
       }
-    }
+    },
   };
 }

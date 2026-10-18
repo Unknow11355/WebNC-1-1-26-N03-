@@ -18,9 +18,10 @@ export const env = {
     database: process.env.DB_NAME ?? 'mini_supermarket',
   },
   jwtSecret: process.env.JWT_SECRET ?? '',
-  corsOrigins: (process.env.CORS_ORIGINS ?? 'http://localhost:5173')
+  corsOrigins: (process.env.CORS_ORIGINS ?? 'http://localhost:5173,http://127.0.0.1:5173')
     .split(',')
     .map((value) => value.trim())
+<<<<<<< HEAD
     .filter(Boolean),
 
   // --- CẤU HÌNH VNPAY ---
@@ -30,3 +31,14 @@ export const env = {
   vnpApiUrl: process.env.VNP_API_URL ?? '',
   vnpReturnUrl: process.env.VNP_RETURN_URL ?? '',
 };
+=======
+    .filter(Boolean)
+    .concat(
+      process.env.CODESPACE_NAME
+        ? [
+            `https://${process.env.CODESPACE_NAME}-5173.${process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN || 'app.github.dev'}`,
+          ]
+        : [],
+    ),
+};
+>>>>>>> ae1dd6d49300160d75d6beea0525b4c9e82c5c23

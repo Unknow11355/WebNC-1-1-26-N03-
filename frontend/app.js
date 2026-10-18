@@ -19,6 +19,19 @@ const state = {
   rows: [],
   pos: [],
   posRequest: null,
+  posCustomer: null,
+  posMemberQuery: "",
+  posMemberResults: [],
+  posCustomerVouchers: [],
+  memberQuery: "",
+  memberResults: [],
+  memberId: null,
+  memberHistoryPage: 1,
+  voucherCode: "",
+  activityEmployeeId: "",
+  activityFrom: "",
+  activityTo: "",
+  activityPage: 1,
 };
 let renderVersion = 0,
   noticeTimer;
@@ -42,6 +55,10 @@ function resetSession() {
   state.user = null;
   state.pos = [];
   state.posRequest = null;
+  state.posCustomer = null;
+  state.posMemberQuery = "";
+  state.posMemberResults = [];
+  state.posCustomerVouchers = [];
   sessionStorage.removeItem("token");
 }
 function restorePos() {
@@ -50,6 +67,8 @@ function restorePos() {
     if (saved && saved.userId === state.user?.user_id) {
       state.posRequest = saved;
       state.pos = saved.displayItems || [];
+      state.posCustomer = saved.customer || null;
+      state.posCustomerVouchers = saved.customerVouchers || [];
     }
   } catch {
     toast(
@@ -94,7 +113,12 @@ async function api(path, { method = "GET", body, headers = {} } = {}) {
 function shell() {
   const links = [["shop", "Sản phẩm"]];
   if (role() === "customer")
-    links.push(["cart", "Giỏ hàng"], ["orders", "Đơn hàng của tôi"]);
+    links.push(
+      ["cart", "Giỏ hàng"],
+      ["orders", "Đơn hàng của tôi"],
+      ["points", "Điểm thành viên"],
+      ["my-vouchers", "Voucher của tôi"],
+    );
   if (staff())
     links.push(
       ["pos", "Bán tại quầy"],
@@ -104,6 +128,7 @@ function shell() {
       ["barcode", "Mã vạch"],
       ["schedule", "Lịch nhân viên"],
       ["shifts", "Ca làm"],
+      ["members", "Tra cứu thành viên"],
     );
   if (isAdmin())
     links.push(
@@ -111,13 +136,15 @@ function shell() {
       ["categories", "Danh mục"],
       ["users", "Nhân viên & khách hàng"],
       ["vouchers", "Voucher"],
+      ["reports.html", "Báo cáo doanh thu", true],
+      ["employee-report", "Hoạt động nhân viên"],
     );
   if (state.user) links.push(["profile", "Tài khoản"]);
   else links.push(["login", "Đăng nhập"], ["register", "Đăng ký"]);
   $("#nav").innerHTML = links
     .map(
-      ([key, text]) =>
-        `<a href="#${key}" ${route() === key ? 'class="active" aria-current="page"' : ""}>${text}</a>`,
+      ([key, text, external]) =>
+        `<a href="${external ? key : `#${key}`}" ${!external && route() === key ? 'class="active" aria-current="page"' : ""}>${text}</a>`,
     )
     .join("");
   $("#identity").innerHTML = state.user
@@ -229,6 +256,190 @@ async function render() {
       const view = shiftsView({ api, user: state.user, toast });
       html = view.html;
       after = view.after;
+    } else if (current === "members") {
+      if (state.memberId) {
+        const [memberResult, historyResult] = await Promise.all([
+          api(`/members/${state.memberId}`),
+          api(
+            `/members/${state.memberId}/points/history?page=${state.memberHistoryPage}&limit=20`,
+          ),
+        ]);
+        const member = memberResult.data;
+        const history = historyResult.data;
+        html =
+          title(
+            "Thành viên",
+            "Thông tin khách hàng và lịch sử tích/đổi điểm.",
+            btn("member-back", "Quay lại danh sách"),
+          ) +
+          `<section class="panel stack"><h2>${e(member.full_name)}</h2><p>Mã thành viên: ${e(member.membership_code)} · Điểm hiện có: <strong>${e(member.points)}</strong></p><p>${e(member.phone || "Chưa có số điện thoại")} · ${e(member.email)}</p></section>` +
+          table(
+            [
+              "Thời gian",
+              "Loại giao dịch",
+              "Điểm thay đổi",
+              "Mã đơn",
+              "Ghi chú",
+            ],
+            history.map((item) => [
+              e(new Date(item.created_at).toLocaleString("vi-VN")),
+              e(
+                { earn: "Tích điểm", redeem: "Đổi điểm", release: "Hoàn điểm" }[
+                  item.type
+                ] || item.type,
+              ),
+              `${Number(item.points_change) > 0 ? "+" : ""}${e(item.points_change)}`,
+              item.order_id ? `#${e(item.order_id)}` : "—",
+              e(item.note || "—"),
+            ]),
+          ) +
+          `<div class="pager"><button data-action="member-page" data-id="${state.memberHistoryPage - 1}" ${state.memberHistoryPage <= 1 ? "disabled" : ""}>Trước</button><span>Trang ${historyResult.meta.page} / ${Math.max(1, historyResult.meta.totalPages)} · ${historyResult.meta.total} giao dịch</span><button data-action="member-page" data-id="${state.memberHistoryPage + 1}" ${state.memberHistoryPage >= historyResult.meta.totalPages ? "disabled" : ""}>Sau</button></div>`;
+      } else {
+        html =
+          title(
+            "Tra cứu thành viên",
+            "Tìm khách hàng theo mã thành viên, tên, email hoặc số điện thoại.",
+          ) +
+          `<section class="panel stack"><form id="member-search" class="toolbar"><label for="member-query">Thông tin cần tra<input id="member-query" name="q" maxlength="100" value="${e(state.memberQuery)}" required></label><button>Tìm thành viên</button></form><div id="member-results">${
+            state.memberResults.length
+              ? table(
+                  ["Mã thành viên", "Khách hàng", "Liên hệ", "Điểm", ""],
+                  state.memberResults.map((member) => [
+                    e(member.membership_code),
+                    e(member.full_name),
+                    e(member.phone || member.email),
+                    e(member.points),
+                    btn("member-detail", "Lịch sử điểm", member.user_id),
+                  ]),
+                )
+              : '<p class="muted">Nhập thông tin khách hàng để tra cứu.</p>'
+          }</div></section>`;
+        after = () =>
+          $("#member-search").addEventListener("submit", async (event) => {
+            event.preventDefault();
+            state.memberQuery = $("#member-query").value.trim();
+            try {
+              const result = await api(
+                `/members/search?q=${encodeURIComponent(state.memberQuery)}&page=1&limit=20`,
+              );
+              state.memberResults = result.data;
+              await render();
+            } catch (error) {
+              toast(error.message);
+            }
+          });
+      }
+    } else if (current === "points") {
+      const memberResult = await api("/members/me");
+      const member = memberResult.data;
+      const historyResult = await api(
+        `/members/${member.user_id}/points/history?page=${state.memberHistoryPage}&limit=20`,
+      );
+      const history = historyResult.data;
+      html =
+        title(
+          "Điểm thành viên",
+          "Số dư và lịch sử tích điểm, đổi điểm, hoàn điểm.",
+        ) +
+        `<section class="panel stack"><h2>${e(member.full_name)}</h2><p>Mã thành viên: ${e(member.membership_code)}</p><div class="total">Số điểm hiện có: ${e(member.points)}</div><p class="note">Mỗi 10.000 ₫ thanh toán sau giảm giá được tích 1 điểm; 1 điểm giảm 1.000 ₫.</p></section>` +
+        table(
+          ["Thời gian", "Loại giao dịch", "Điểm thay đổi", "Mã đơn", "Ghi chú"],
+          history.map((item) => [
+            e(new Date(item.created_at).toLocaleString("vi-VN")),
+            e(
+              { earn: "Tích điểm", redeem: "Đổi điểm", release: "Hoàn điểm" }[
+                item.type
+              ] || item.type,
+            ),
+            `${Number(item.points_change) > 0 ? "+" : ""}${e(item.points_change)}`,
+            item.order_id ? `#${e(item.order_id)}` : "—",
+            e(item.note || "—"),
+          ]),
+        ) +
+        `<div class="pager"><button data-action="member-page" data-id="${state.memberHistoryPage - 1}" ${state.memberHistoryPage <= 1 ? "disabled" : ""}>Trước</button><span>Trang ${historyResult.meta.page} / ${Math.max(1, historyResult.meta.totalPages)} · ${historyResult.meta.total} giao dịch</span><button data-action="member-page" data-id="${state.memberHistoryPage + 1}" ${state.memberHistoryPage >= historyResult.meta.totalPages ? "disabled" : ""}>Sau</button></div>`;
+    } else if (current === "employee-report") {
+      const dateInVietnam = (date) =>
+        new Intl.DateTimeFormat("en-CA", {
+          timeZone: "Asia/Ho_Chi_Minh",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).format(date);
+      if (!state.activityTo) state.activityTo = dateInVietnam(new Date());
+      if (!state.activityFrom) {
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 6);
+        state.activityFrom = dateInVietnam(weekAgo);
+      }
+      let result = null;
+      if (state.activityEmployeeId) {
+        const query = new URLSearchParams({
+          from: state.activityFrom,
+          to: state.activityTo,
+          page: state.activityPage,
+          limit: 20,
+        });
+        result = await api(
+          `/reports/employees/${state.activityEmployeeId}/activity?${query}`,
+        );
+      }
+      html =
+        title(
+          "Hoạt động nhân viên",
+          "Lịch sử đơn đã xử lý và ca làm theo khoảng ngày.",
+        ) +
+        `<section class="panel stack"><form id="employee-activity-filter" class="toolbar"><label>Mã nhân viên<input name="employee_id" type="number" min="1" step="1" value="${e(state.activityEmployeeId)}" required></label><label>Từ ngày<input name="from" type="date" value="${e(state.activityFrom)}" required></label><label>Đến ngày<input name="to" type="date" value="${e(state.activityTo)}" required></label><button>Xem hoạt động</button></form><p class="note">Mã nhân viên có thể tra trong mục Nhân viên & khách hàng. Chỉ quản trị viên xem trang tổng hợp này.</p></section>`;
+      if (result) {
+        const data = result.data;
+        html += `<section class="panel stack"><h2>${e(data.employee.full_name)} · #${e(data.employee.user_id)}</h2><p>${e(data.employee.email)} · ${e(data.employee.employment_type)} · ${e(data.employee.status)}</p><p>Khoảng báo cáo ${e(result.meta.filter.from)} – ${e(result.meta.filter.to)} · ${e(result.meta.timezone)}</p></section>`;
+        html += `<section class="panel stack"><h2>Đơn đã xử lý (${data.order_meta.total})</h2>${table(
+          [
+            "Mã đơn",
+            "Thời gian xử lý",
+            "Trạng thái",
+            "Thanh toán",
+            "Tạm tính",
+            "Voucher",
+            "Điểm đổi",
+            "Còn phải trả",
+            "Ca",
+            "Ghi chú",
+          ],
+          data.orders.map((order) => [
+            `#${e(order.order_id)}`,
+            e(new Date(order.handled_at).toLocaleString("vi-VN")),
+            e(label(order.status)),
+            e(label(order.payment_status)),
+            money(order.total_amount),
+            money(order.discount_amount),
+            money(order.points_discount),
+            money(order.final_amount),
+            order.shift_id ? `#${e(order.shift_id)}` : "—",
+            e(order.rejection_reason || "—"),
+          ]),
+        )}<div class="pager"><button data-action="staff-activity-page" data-id="${state.activityPage - 1}" ${state.activityPage <= 1 ? "disabled" : ""}>Trước</button><span>Trang ${state.activityPage} / ${Math.max(1, data.order_meta.totalPages)}</span><button data-action="staff-activity-page" data-id="${state.activityPage + 1}" ${state.activityPage >= data.order_meta.totalPages ? "disabled" : ""}>Sau</button></div></section>`;
+        html += `<section class="panel stack"><h2>Ca làm (${data.shift_meta.total})</h2>${table(
+          ["Mã ca", "Ngày", "Bắt đầu", "Kết thúc", "Trạng thái", "Ghi chú"],
+          data.shifts.map((shift) => [
+            `#${e(shift.shift_id)}`,
+            e(shift.shift_date),
+            e(shift.start_time || "—"),
+            e(shift.ended_at || shift.end_time || "Đang mở"),
+            e(shift.status),
+            e(shift.note || "—"),
+          ]),
+        )}</section>`;
+      }
+      after = () =>
+        $("#employee-activity-filter").addEventListener("submit", (event) => {
+          event.preventDefault();
+          const values = new FormData(event.currentTarget);
+          state.activityEmployeeId = String(values.get("employee_id")).trim();
+          state.activityFrom = String(values.get("from"));
+          state.activityTo = String(values.get("to"));
+          state.activityPage = 1;
+          render();
+        });
     } else if (current === "barcode" || current === "schedule") {
       const view =
         current === "barcode"
@@ -236,7 +447,12 @@ async function render() {
           : scheduleView({ api, user: state.user, toast });
       html = view.html;
       after = view.after;
-    } else if (current === "login" || current === "register" || current === "forgot" || current === "reset") {
+    } else if (
+      current === "login" ||
+      current === "register" ||
+      current === "forgot" ||
+      current === "reset"
+    ) {
       const register = current === "register";
       const forgot = current === "forgot";
       const reset = current === "reset";
@@ -247,7 +463,12 @@ async function render() {
 
       if (register) {
         subtitle = "Tạo tài khoản khách hàng mới.";
-        formContent = field("full_name", "Họ và tên") + field("email", "Email", "email") + field("password", "Mật khẩu", "password") + field("phone", "Số điện thoại", "tel", "", null, false) + field("address", "Địa chỉ", "text", "", null, false);
+        formContent =
+          field("full_name", "Họ và tên") +
+          field("email", "Email", "email") +
+          field("password", "Mật khẩu", "password") +
+          field("phone", "Số điện thoại", "tel", "", null, false) +
+          field("address", "Địa chỉ", "text", "", null, false);
         submitText = "Đăng ký";
       } else if (forgot) {
         subtitle = "Nhập email của bạn để nhận yêu cầu khôi phục mật khẩu.";
@@ -255,17 +476,24 @@ async function render() {
         submitText = "Gửi yêu cầu khôi phục";
       } else if (reset) {
         subtitle = "Nhập mã token khôi phục nhận được và mật khẩu mới.";
-        formContent = field("token", "Mã Token khôi phục", "text") + field("new_password", "Mật khẩu mới", "password");
+        formContent =
+          field("token", "Mã Token khôi phục", "text") +
+          field("new_password", "Mật khẩu mới", "password");
         submitText = "Đặt lại mật khẩu";
       } else {
-        formContent = field("email", "Email", "email") + field("password", "Mật khẩu", "password");
+        formContent =
+          field("email", "Email", "email") +
+          field("password", "Mật khẩu", "password");
       }
 
       html = `<div class="auth panel">${title(register ? "Tạo tài khoản" : forgot ? "Quên mật khẩu" : reset ? "Đặt lại mật khẩu" : "Chào mừng trở lại", subtitle)}${form(formContent, submitText)}<p class="muted">${
-        register ? 'Đã có tài khoản? <a href="#login">Đăng nhập</a>' :
-        forgot ? 'Nhớ lại mật khẩu? <a href="#login">Đăng nhập</a>' :
-        reset ? 'Quay lại <a href="#login">Đăng nhập</a>' :
-        'Chưa có tài khoản? <a href="#register">Đăng ký</a> · <a href="#forgot">Quên mật khẩu?</a>'
+        register
+          ? 'Đã có tài khoản? <a href="#login">Đăng nhập</a>'
+          : forgot
+            ? 'Nhớ lại mật khẩu? <a href="#login">Đăng nhập</a>'
+            : reset
+              ? 'Quay lại <a href="#login">Đăng nhập</a>'
+              : 'Chưa có tài khoản? <a href="#register">Đăng ký</a> · <a href="#forgot">Quên mật khẩu?</a>'
       }</p></div>`;
 
       after = () =>
@@ -275,10 +503,15 @@ async function render() {
               method: "POST",
               body: data,
             });
-            toast(result.message || "Đã gửi yêu cầu. Kiểm tra email hoặc console backend.");
+            toast(
+              result.message ||
+                "Đã gửi yêu cầu. Kiểm tra email hoặc console backend.",
+            );
             if (result.data?.reset_token) {
               console.log("DEMO RESET TOKEN:", result.data.reset_token);
-              alert("Mã/Token demo (chỉ hiện khi dev): " + result.data.reset_token);
+              alert(
+                "Mã/Token demo (chỉ hiện khi dev): " + result.data.reset_token,
+              );
             }
             location.hash = "reset";
           } else if (reset) {
@@ -354,7 +587,7 @@ async function render() {
               ? cards
               : '<div class="empty">Không tìm thấy sản phẩm phù hợp.</div>';
       html += pager(result.meta);
-      after = () =>
+      after = () => {
         $("#search").addEventListener("submit", (event) => {
           event.preventDefault();
           const d = new FormData(event.currentTarget);
@@ -363,6 +596,64 @@ async function render() {
           state.page = 1;
           render();
         });
+        const memberForm = $("#pos-member-search");
+        memberForm?.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          state.posMemberQuery = memberForm.elements.q.value.trim();
+          try {
+            const result = await api(
+              `/members/search?q=${encodeURIComponent(state.posMemberQuery)}&page=1&limit=20`,
+            );
+            state.posMemberResults = result.data;
+            await render();
+          } catch (error) {
+            toast(error.message);
+          }
+        });
+      };
+    } else if (current === "my-vouchers") {
+      const [availableResult, mineResult] = await Promise.all([
+        api("/vouchers/available"),
+        api("/vouchers/mine"),
+      ]);
+      const voucherDescription = (voucher) =>
+        `${e(voucher.description || "Voucher ưu đãi")} · ${voucher.discount_type === "percent" ? `${e(voucher.discount_value)}%` : money(voucher.discount_value)} giảm${voucher.max_discount ? ` tối đa ${money(voucher.max_discount)}` : ""} · Đơn tối thiểu ${money(voucher.min_order_amount)}`;
+      html =
+        title(
+          "Voucher của tôi",
+          "Lưu voucher khả dụng để dùng khi đặt hàng online hoặc đưa mã cho nhân viên tại quầy.",
+        ) +
+        `<section class="panel stack"><h2>Voucher khả dụng</h2>${
+          availableResult.data.length
+            ? table(
+                ["Mã", "Ưu đãi", "Hạn dùng", ""],
+                availableResult.data.map((voucher) => [
+                  e(voucher.code),
+                  voucherDescription(voucher),
+                  e(voucher.expiry_date || "Không giới hạn"),
+                  btn("voucher-claim", "Lưu voucher", voucher.voucher_id),
+                ]),
+              )
+            : '<p class="muted">Hiện không có voucher mới để lưu.</p>'
+        }</section>` +
+        `<section class="panel stack"><h2>Voucher đã lưu</h2>${
+          mineResult.data.length
+            ? table(
+                ["Mã", "Ưu đãi", "Tình trạng", "Đã dùng", ""],
+                mineResult.data.map((voucher) => [
+                  e(voucher.code),
+                  voucherDescription(voucher),
+                  Number(voucher.usable) === 1
+                    ? "Còn dùng được"
+                    : "Hết hạn/hết lượt/ngừng hoạt động",
+                  e(voucher.customer_used_count),
+                  Number(voucher.usable) === 1
+                    ? btn("voucher-use", "Dùng online", voucher.code)
+                    : "—",
+                ]),
+              )
+            : '<p class="muted">Bạn chưa lưu voucher nào.</p>'
+        }</section>`;
     } else if (current === "cart") {
       const cart = (await api("/carts")).data;
       state.cart = cart;
@@ -392,7 +683,14 @@ async function render() {
               null,
               false,
             ) +
-            field("voucher_code", "Mã voucher", "text", "", null, false) +
+            field(
+              "voucher_code",
+              "Mã voucher đã lưu",
+              "text",
+              state.voucherCode,
+              null,
+              false,
+            ) +
             field("note", "Ghi chú", "text", "", null, false),
           "Đặt hàng",
         )}${btn("voucher-check", "Kiểm tra voucher")}<p class="note">Nếu chọn VNPay, bạn sẽ được chuyển hướng sang cổng thanh toán sau khi đặt hàng.</p></section></div>`;
@@ -408,20 +706,23 @@ async function render() {
             });
 
             toast("Đã tạo đơn #" + r.data.order_id);
+            state.voucherCode = "";
 
             // CẬP NHẬT: KIỂM TRA NẾU KHÁCH CHỌN VNPAY THÌ ĐÁ SANG SANDBOX
-            if (r.data.requiresVnpayPayment || d.payment_method === 'vnpay') {
+            if (r.data.requiresVnpayPayment || d.payment_method === "vnpay") {
               try {
                 const payRes = await api("/payments/vnpay/create", {
                   method: "POST",
-                  body: { order_id: r.data.order_id }
+                  body: { order_id: r.data.order_id },
                 });
                 if (payRes.data?.paymentUrl) {
                   window.location.href = payRes.data.paymentUrl;
                   return;
                 }
               } catch (e) {
-                toast("Tạo link thanh toán VNPay lỗi. Vui lòng thanh toán lại trong mục Đơn hàng.");
+                toast(
+                  "Tạo link thanh toán VNPay lỗi. Vui lòng thanh toán lại trong mục Đơn hàng.",
+                );
               }
             }
 
@@ -470,7 +771,10 @@ async function render() {
         const forms = $("#main").querySelectorAll("form");
         if (forms[0]) {
           wireForm(forms[0].parentElement, async (data) => {
-            const result = await api("/auth/me", { method: "PATCH", body: data });
+            const result = await api("/auth/me", {
+              method: "PATCH",
+              body: data,
+            });
             state.user = result.data;
             toast("Đã cập nhật hồ sơ");
             await render();
@@ -479,7 +783,9 @@ async function render() {
         if (forms[1]) {
           wireForm(forms[1].parentElement, async (data) => {
             await api("/auth/me/password", { method: "PATCH", body: data });
-            toast("Đã đổi mật khẩu thành công. Các phiên khác đã được thu hồi.");
+            toast(
+              "Đã đổi mật khẩu thành công. Các phiên khác đã được thu hồi.",
+            );
             forms[1].reset();
           });
         }
@@ -764,14 +1070,31 @@ async function editResource(id) {
 }
 function posPanel() {
   const pending = state.posRequest;
-  return `${state.pos.map((i) => `<div class="item-row"><div>${e(i.product_name)}<p class="muted">${i.quantity} ×${money(i.price)}</p></div>${btn("pos-minus", "−", i.product_id)}${btn("pos-add", "+", i.product_id)}</div>`).join("") || '<p class="muted">Chọn sản phẩm để lập phiếu bán.</p>'}<div class="total">Tạm tính ${money(cartTotal(state.pos))}</div><p class="note">Chỉ xác nhận sau khi đã thu tiền. Chưa áp dụng voucher/điểm. Tổng tiền chính thức lấy từ máy chủ.</p>${pending ? '<p class="note">Có yêu cầu chưa xác định kết quả. Giữ nguyên phiếu và thử lại cùng mã yêu cầu; không tạo phiếu mới.</p>' : ""}${state.pos.length || pending ? btn("pos-pay", pending ? "Thử lại yêu cầu thanh toán" : "Đã thu tiền · Hoàn tất", "", "") : ""}`;
+  const memberChoices = state.posMemberResults
+    .map(
+      (member) =>
+        `<div class="item-row"><span>${e(member.full_name)} · ${e(member.membership_code)} · ${e(member.phone || member.email)} · ${e(member.points)} điểm</span>${btn("pos-select-member", "Chọn", member.user_id)}</div>`,
+    )
+    .join("");
+  const voucherOptions = state.posCustomerVouchers
+    .filter((voucher) => Number(voucher.usable) === 1)
+    .map(
+      (voucher) =>
+        `<option value="${e(voucher.code)}" ${voucher.code === state.posRequest?.body?.voucher_code ? "selected" : ""}>${e(voucher.code)} · ${e(voucher.description || "Voucher")} · còn ${voucher.usage_limit === null ? "không giới hạn" : Math.max(0, Number(voucher.usage_limit) - Number(voucher.used_count)) + " lượt"}</option>`,
+    )
+    .join("");
+  const member = state.posCustomer;
+  return `${state.pos.map((i) => `<div class="item-row"><div>${e(i.product_name)}<p class="muted">${i.quantity} ×${money(i.price)}</p></div>${btn("pos-minus", "−", i.product_id)}${btn("pos-add", "+", i.product_id)}</div>`).join("") || '<p class="muted">Chọn sản phẩm để lập phiếu bán.</p>'}<div class="total">Tạm tính ${money(cartTotal(state.pos))}</div><section class="stack"><h3>Khách hàng thành viên</h3>${member ? `<p>Đang chọn: <strong>${e(member.full_name)}</strong> · ${e(member.membership_code)} · ${e(member.points)} điểm</p>${btn("pos-member-clear", "Bỏ chọn khách", "", "secondary")}` : `<form id="pos-member-search" class="toolbar"><label for="pos-member-query">Tra theo tên, điện thoại, email hoặc mã thành viên</label><input id="pos-member-query" name="q" maxlength="100" value="${e(state.posMemberQuery)}" required><button type="submit">Tìm khách</button></form>${memberChoices || ""}`}<label for="pos-voucher">Voucher đã lưu của khách</label><select id="pos-voucher" ${!member || pending ? "disabled" : ""}><option value="">Không dùng voucher</option>${voucherOptions}</select><label for="pos-points-used">Điểm muốn đổi (1 điểm giảm 1.000 ₫)</label><input id="pos-points-used" type="number" min="0" step="1" value="${e(state.posRequest?.body?.points_used ?? 0)}" ${!member || pending ? "disabled" : ""}><p class="note">Điểm đổi được tính sau voucher; máy chủ sẽ kiểm tra lại số dư, điều kiện voucher và tổng tiền.</p></section><p class="note">Chỉ xác nhận sau khi đã thu đủ tiền mặt. Tổng tiền chính thức được tính lại ở máy chủ.</p>${pending ? '<p class="note">Có yêu cầu chưa xác định kết quả. Giữ nguyên phiếu và thử lại cùng mã yêu cầu; không tạo phiếu mới.</p>' : ""}${state.pos.length || pending ? btn("pos-pay", pending ? "Thử lại yêu cầu thanh toán" : "Đã thu tiền · Hoàn tất", "", "") : ""}`;
 }
 async function showOrder(id) {
   const o = (await api("/orders/" + id)).data;
 
   // CẬP NHẬT KIỂM TRA HIỆN NÚT VNPAY
-  const isCustomer = role() === 'customer';
-  const canPayVnpay = o.payment_method === 'vnpay' && o.payment_status === 'pending' && isCustomer;
+  const isCustomer = role() === "customer";
+  const canPayVnpay =
+    o.payment_method === "vnpay" &&
+    o.payment_status === "pending" &&
+    isCustomer;
 
   modal(
     "Đơn hàng #" + id,
@@ -781,32 +1104,62 @@ async function showOrder(id) {
         e(i.product_name || "#" + i.product_id),
         e(i.quantity),
         money(i.price),
-        (o.status === 'completed' && role() === 'customer') ? btn("review-add", "Đánh giá", i.product_id) : ""
+        o.status === "completed" && role() === "customer"
+          ? btn("review-add", "Đánh giá", i.product_id)
+          : "",
       ]),
     )}<p>Giảm giá: ${money(o.discount_amount)}</p><div class="total">Thanh toán: ${money(o.final_amount)}</div><div class="actions">
       ${canPayVnpay ? btn("pay-vnpay", "Thanh toán VNPay ngay", id) : ""}
-      ${orderActions(
-      o,
-      role(),
-    )
-      .map((a) =>
-        btn(
-          "order-" + a,
-          {
-            confirm: "Xác nhận đơn",
-            reject: "Từ chối",
-            receive: "Đã nhận hàng",
-            "pay-cash": "Xác nhận đã thu tiền",
-          }[a],
-          id,
-          a === "reject" ? "danger" : "",
-        ),
-      )
-      .join("")}</div>`,
+      ${orderActions(o, role())
+        .map((a) =>
+          btn(
+            "order-" + a,
+            {
+              confirm: "Xác nhận đơn",
+              reject: "Từ chối",
+              receive: "Đã nhận hàng",
+              "pay-cash": "Xác nhận đã thu tiền",
+            }[a],
+            id,
+            a === "reject" ? "danger" : "",
+          ),
+        )
+        .join("")}</div>`,
   );
 }
 async function action(name, id) {
   if (name === "retry") return render();
+  if (name === "voucher-claim") {
+    await api("/vouchers/claim", {
+      method: "POST",
+      body: { voucher_id: Number(id) },
+    });
+    toast("Đã lưu voucher vào tài khoản của bạn.");
+    return render();
+  }
+  if (name === "voucher-use") {
+    state.voucherCode = id;
+    location.hash = "cart";
+    return;
+  }
+  if (name === "member-detail") {
+    state.memberId = Number(id);
+    state.memberHistoryPage = 1;
+    return render();
+  }
+  if (name === "member-back") {
+    state.memberId = null;
+    state.memberHistoryPage = 1;
+    return render();
+  }
+  if (name === "member-page") {
+    state.memberHistoryPage = Math.max(1, Number(id));
+    return render();
+  }
+  if (name === "staff-activity-page") {
+    state.activityPage = Math.max(1, Number(id));
+    return render();
+  }
   if (name === "page") {
     state.page = Number(id);
     return render();
@@ -820,24 +1173,29 @@ async function action(name, id) {
   if (name === "detail") {
     const [pReq, revReq] = await Promise.all([
       api("/products/" + id).catch(() => ({ data: {} })),
-      api("/reviews/products/" + id).catch(() => ({ data: [] }))
+      api("/reviews/products/" + id).catch(() => ({ data: [] })),
     ]);
     const p = pReq.data;
     const reviews = revReq.data || [];
 
-    const reviewsHtml = reviews.length > 0
-      ? reviews.map(r => `
+    const reviewsHtml =
+      reviews.length > 0
+        ? reviews
+            .map(
+              (r) => `
           <div class="review-item" style="border-bottom: 1px solid #eee; padding: 10px 0;">
             <div style="display: flex; justify-content: space-between;">
               <strong>${e(r.customer_name)}</strong>
-              <span style="color: #ffc107;">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</span>
+              <span style="color: #ffc107;">${"★".repeat(r.rating)}${"☆".repeat(5 - r.rating)}</span>
             </div>
             <p style="margin: 5px 0;">${e(r.comment)}</p>
-            <small class="muted">${new Date(r.created_at).toLocaleString('vi-VN')}</small>
-            ${(role() === 'admin' || state.user?.user_id === r.user_id) ? `<div style="margin-top: 5px;">${btn("review-delete", "Xóa", r.review_id, "danger")}</div>` : ''}
+            <small class="muted">${new Date(r.created_at).toLocaleString("vi-VN")}</small>
+            ${role() === "admin" || state.user?.user_id === r.user_id ? `<div style="margin-top: 5px;">${btn("review-delete", "Xóa", r.review_id, "danger")}</div>` : ""}
           </div>
-        `).join('')
-      : '<p class="muted">Chưa có đánh giá nào.</p>';
+        `,
+            )
+            .join("")
+        : '<p class="muted">Chưa có đánh giá nào.</p>';
 
     modal(
       p.product_name,
@@ -850,7 +1208,7 @@ async function action(name, id) {
        <h3>Đánh giá từ khách hàng</h3>
        <div class="reviews-list" style="max-height: 250px; overflow-y: auto;">
          ${reviewsHtml}
-       </div>`
+       </div>`,
     );
     return;
   }
@@ -1008,6 +1366,31 @@ async function action(name, id) {
     }
     return render();
   }
+  if (name === "pos-member-search") {
+    state.posMemberQuery = $("#pos-member-query")?.value.trim() || "";
+    const result = await api(
+      `/members/search?q=${encodeURIComponent(state.posMemberQuery)}&page=1&limit=20`,
+    );
+    state.posMemberResults = result.data;
+    return render();
+  }
+  if (name === "pos-select-member") {
+    state.posCustomer =
+      state.posMemberResults.find(
+        (member) => String(member.user_id) === String(id),
+      ) || (await api(`/members/${id}`)).data;
+    state.posMemberResults = [];
+    state.posCustomerVouchers = (await api(`/vouchers/customers/${id}`)).data;
+    return render();
+  }
+  if (name === "pos-member-clear") {
+    if (state.posRequest)
+      throw new Error("Không thể đổi khách khi phiếu đang chờ đối soát.");
+    state.posCustomer = null;
+    state.posCustomerVouchers = [];
+    state.posPointsUsed = 0;
+    return render();
+  }
   if (name === "pos-pay") {
     if (!state.posRequest) {
       const outstanding = JSON.parse(
@@ -1018,17 +1401,25 @@ async function action(name, id) {
           "Còn phiếu POS chưa đối soát trong tab này. Đăng nhập lại tài khoản đã lập phiếu để xử lý trước.",
         );
       if (!confirm("Xác nhận đã thu tiền mặt cho phiếu bán này?")) return;
+      const pointsUsed = Number($("#pos-points-used")?.value || 0);
+      const voucherCode = $("#pos-voucher")?.value || "";
+      if (!Number.isSafeInteger(pointsUsed) || pointsUsed < 0)
+        throw new Error("Số điểm muốn đổi phải là số nguyên không âm.");
       state.posRequest = {
         key: crypto.randomUUID(),
         userId: state.user.user_id,
         displayItems: state.pos.map((i) => ({ ...i })),
+        customer: state.posCustomer,
+        customerVouchers: state.posCustomerVouchers,
         body: {
           items: state.pos.map((i) => ({
             product_id: i.product_id,
             quantity: i.quantity,
           })),
           payment_method: "cash",
-          customer_id: null,
+          customer_id: state.posCustomer?.user_id ?? null,
+          points_used: pointsUsed,
+          ...(voucherCode ? { voucher_code: voucherCode } : {}),
         },
       };
       sessionStorage.setItem("posRequest", JSON.stringify(state.posRequest));
@@ -1045,8 +1436,12 @@ async function action(name, id) {
       if (
         [
           "INSUFFICIENT_STOCK",
+          "INSUFFICIENT_POINTS",
           "VALIDATION_ERROR",
           "NOT_FOUND",
+          "EXPIRED",
+          "CONFLICT",
+          "FORBIDDEN",
           "BUSINESS_RULE_VIOLATION",
         ].includes(error.code)
       ) {
@@ -1058,6 +1453,9 @@ async function action(name, id) {
     }
     state.posRequest = null;
     state.pos = [];
+    state.posCustomer = null;
+    state.posMemberResults = [];
+    state.posCustomerVouchers = [];
     sessionStorage.removeItem("posRequest");
     toast("Thanh toán thành công");
     await render();
@@ -1069,7 +1467,7 @@ async function action(name, id) {
   if (name === "pay-vnpay") {
     const r = await api("/payments/vnpay/create", {
       method: "POST",
-      body: { order_id: Number(id) }
+      body: { order_id: Number(id) },
     });
     if (r.data && r.data.paymentUrl) {
       window.location.href = r.data.paymentUrl; // Chuyển hướng sang VNPay
@@ -1081,16 +1479,24 @@ async function action(name, id) {
 
   if (name === "review-add") {
     $("#dialog").close();
-    const fields = field("rating", "Số sao (1-5)", "number", "5", [
-      ["5", "5 Sao - Tuyệt vời"], ["4", "4 Sao - Tốt"], ["3", "3 Sao - Bình thường"],
-      ["2", "2 Sao - Tệ"], ["1", "1 Sao - Rất tệ"]
-    ]) + field("comment", "Nội dung đánh giá", "text");
+    const fields =
+      field("rating", "Số sao (1-5)", "number", "5", [
+        ["5", "5 Sao - Tuyệt vời"],
+        ["4", "4 Sao - Tốt"],
+        ["3", "3 Sao - Bình thường"],
+        ["2", "2 Sao - Tệ"],
+        ["1", "1 Sao - Rất tệ"],
+      ]) + field("comment", "Nội dung đánh giá", "text");
 
     modal("Đánh giá sản phẩm", form(fields, "Gửi đánh giá"), async (d) => {
       await api("/reviews", {
         method: "POST",
         headers: { Authorization: "Bearer " + state.token }, // Thêm dòng này
-        body: { product_id: Number(id), rating: Number(d.rating), comment: d.comment }
+        body: {
+          product_id: Number(id),
+          rating: Number(d.rating),
+          comment: d.comment,
+        },
       });
       $("#dialog").close();
       toast("Cảm ơn bạn đã gửi đánh giá!");
@@ -1150,16 +1556,20 @@ async function start() {
   await render();
 }
 start();
-document.addEventListener('DOMContentLoaded', () => {
-    document.addEventListener('click', (event) => {
-        const notiWrapper = document.querySelector('.noti-wrapper');
-        if (notiWrapper && notiWrapper.hasAttribute('open') && !notiWrapper.contains(event.target)) {
-            notiWrapper.removeAttribute('open');
-        }
-    });
+document.addEventListener("DOMContentLoaded", () => {
+  document.addEventListener("click", (event) => {
+    const notiWrapper = document.querySelector(".noti-wrapper");
+    if (
+      notiWrapper &&
+      notiWrapper.hasAttribute("open") &&
+      !notiWrapper.contains(event.target)
+    ) {
+      notiWrapper.removeAttribute("open");
+    }
+  });
 
-    const style = document.createElement('style');
-    style.innerHTML = `
+  const style = document.createElement("style");
+  style.innerHTML = `
         .noti-btn { position: relative; cursor: pointer; list-style: none; }
         .noti-btn::-webkit-details-marker { display: none; }
         .noti-badge {
@@ -1174,5 +1584,5 @@ document.addEventListener('DOMContentLoaded', () => {
             border-radius: 50%;
         }
     `;
-    document.head.appendChild(style);
+  document.head.appendChild(style);
 });

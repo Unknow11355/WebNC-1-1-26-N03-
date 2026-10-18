@@ -28,6 +28,7 @@ export function createPaymentController(service) {
         <h1>${title}</h1>
         <p>${message}</p>
         <p>Mã đơn hàng: <strong>#${orderId || "-"}</strong></p>
+        <!-- Đã sửa chuẩn link Frontend có dấu thăng (#) -->
         <a href="http://127.0.0.1:5173/#orders" class="btn">Quay lại quản lý đơn hàng</a>
       </div>
     </body>
@@ -37,26 +38,35 @@ export function createPaymentController(service) {
   return {
     async createVnpay(req, res) {
       try {
-        // SỬA LỖI Ở ĐÂY: Gọi đối tượng req.auth theo đúng chuẩn Mục 4.3.2 của báo cáo
+        console.log("\n=== BẮT ĐẦU CHẠY TẠO LINK VNPAY ===");
+
+        // Đã sửa chuẩn đọc dữ liệu từ req.auth của file báo cáo đồ án
         const userObj = req.auth || req.user;
         const userId = Number(userObj?.userId || userObj?.user_id || userObj?.id);
 
+        console.log("1. Dữ liệu xác thực (req.auth):", userObj);
+        console.log("2. Dữ liệu req.body:", req.body);
+
         if (!userId) {
+          console.log("=> LỖI: Không tìm thấy userId.");
           return res.status(401).json({ success: false, message: "Chưa xác thực người dùng" });
         }
 
         const orderId = Number(req.body.order_id || req.body.orderId);
         if (!orderId) {
+          console.log("=> LỖI: Không tìm thấy orderId.");
           return res.status(400).json({ success: false, message: "Thiếu mã đơn hàng" });
         }
 
+        console.log(`3. Gọi Service tạo link cho Đơn #${orderId} của User #${userId}`);
         const data = await service.createVnpayUrl(userId, orderId, clientIp(req));
 
-        // Trả URL để Frontend tự động redirect sang cổng mã QR của VNPay
+        console.log("4. THÀNH CÔNG! Link VNPay là:", data.paymentUrl);
         res.json({ success: true, data });
 
       } catch (error) {
-        console.error("Lỗi tạo link VNPay:", error);
+        console.error("\n=== PHÁT HIỆN LỖI SẬP SERVER ===");
+        console.error("Chi tiết lỗi:", error);
         res.status(500).json({ success: false, message: "Lỗi hệ thống", error: error.message });
       }
     },

@@ -3,22 +3,26 @@ export function createPaymentRepository(db) {
 
   return {
     async getOrderForPayment(orderId, executor = db) {
-      const [rows] = await executor.execute(`SELECT * FROM orders WHERE order_id = ? LIMIT 1`, [orderId]);
+      const [rows] = await executor.execute(`SELECT * FROM orders WHERE order_id = ? LIMIT 1`, [
+        orderId,
+      ]);
       return rows[0] ?? null;
     },
 
     async insertPayment(orderId, method, amount, status, transactionId, executor = db) {
       // Tự động kiểm tra xem DB có cột transaction_id không để lưu tránh lỗi
-      const [cols] = await executor.execute(`SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'payments' AND COLUMN_NAME = 'transaction_id'`);
+      const [cols] = await executor.execute(
+        `SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'payments' AND COLUMN_NAME = 'transaction_id'`,
+      );
       if (cols.length > 0) {
         await executor.execute(
           `INSERT INTO payments (order_id, method, amount, status, transaction_id, paid_at) VALUES (?, ?, ?, ?, ?, IF(? = 'paid', NOW(), NULL))`,
-          [orderId, method, amount, status, transactionId, status]
+          [orderId, method, amount, status, transactionId, status],
         );
       } else {
         await executor.execute(
           `INSERT INTO payments (order_id, method, amount, status, paid_at) VALUES (?, ?, ?, ?, IF(? = 'paid', NOW(), NULL))`,
-          [orderId, method, amount, status, status]
+          [orderId, method, amount, status, status],
         );
       }
     },
@@ -32,18 +36,27 @@ export function createPaymentRepository(db) {
         return { ok: true, alreadyPaid: true, order };
       }
 
-      const setParts = ["payment_status = 'paid'", "payment_method = ?", "status = 'completed'"];
+      const setParts = ["payment_status = 'paid'", 'payment_method = ?', "status = 'completed'"];
       const params = [gateway];
 
-      const [cols] = await executor.execute(`SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'orders' AND COLUMN_NAME = 'transaction_id'`);
+      const [cols] = await executor.execute(
+        `SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'orders' AND COLUMN_NAME = 'transaction_id'`,
+      );
       if (cols.length > 0) {
-        setParts.push("transaction_id = ?");
+        setParts.push('transaction_id = ?');
         params.push(transactionId);
       }
       params.push(orderId);
 
       await executor.execute(`UPDATE orders SET ${setParts.join(', ')} WHERE order_id = ?`, params);
-      await this.insertPayment(orderId, gateway, order.final_amount, 'paid', transactionId, executor);
+      await this.insertPayment(
+        orderId,
+        gateway,
+        order.final_amount,
+        'paid',
+        transactionId,
+        executor,
+      );
 
       return { ok: true, alreadyPaid: false, order };
     },
@@ -56,10 +69,19 @@ export function createPaymentRepository(db) {
         return { ok: true, alreadyPaid: true, order };
       }
 
-      await executor.execute(`UPDATE orders SET payment_status = 'failed' WHERE order_id = ?`, [orderId]);
-      await this.insertPayment(orderId, gateway, order.final_amount, 'failed', transactionId, executor);
+      await executor.execute(`UPDATE orders SET payment_status = 'failed' WHERE order_id = ?`, [
+        orderId,
+      ]);
+      await this.insertPayment(
+        orderId,
+        gateway,
+        order.final_amount,
+        'failed',
+        transactionId,
+        executor,
+      );
 
       return { ok: true, order };
-    }
+    },
   };
 }

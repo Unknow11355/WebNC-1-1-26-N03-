@@ -1,6 +1,8 @@
 // Repair reversible UTF-8 bytes mistakenly decoded as Windows-1252, catalogue only.
 import 'dotenv/config';
+import console from 'node:console';
 import mysql from 'mysql2/promise';
+import process from 'node:process';
 import { TextDecoder } from 'node:util';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve, join } from 'node:path';

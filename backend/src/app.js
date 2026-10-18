@@ -3,6 +3,7 @@ import cors from 'cors';
 import express from 'express';
 import { AppError } from './errors/app-error.js';
 import { errorHandler } from './middlewares/error-handler.js';
+import { createOriginGuard } from './middlewares/origin-guard.js';
 import { createRoutes } from './routes/index.js';
 import { createProductService } from './services/product.service.js';
 
@@ -39,6 +40,7 @@ export function createApp({
     res.setHeader('X-Request-Id', req.traceId);
     next();
   });
+  app.use('/api/v1', createOriginGuard(corsOrigins));
   app.use(cors({ origin: corsOrigins, exposedHeaders: ['X-Request-Id'] }));
   app.use(express.json({ limit: '1mb' }));
   app.use(

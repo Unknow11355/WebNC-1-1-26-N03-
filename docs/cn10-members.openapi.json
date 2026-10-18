@@ -21,9 +21,26 @@
       "get": {
         "summary": "Employee/Admin tra khách",
         "parameters": [
-          { "name": "q", "in": "query", "schema": { "type": "string", "maxLength": 100 } },
-          { "name": "page", "in": "query", "schema": { "type": "integer", "minimum": 1, "default": 1 } },
-          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 20, "default": 20 } }
+          {
+            "name": "q",
+            "in": "query",
+            "schema": { "type": "string", "maxLength": 100 }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "default": 1 }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20,
+              "default": 20
+            }
+          }
         ],
         "responses": {
           "200": { "description": "Paged customer list" },
@@ -36,7 +53,12 @@
       "get": {
         "summary": "Xem thông tin khách hàng",
         "parameters": [
-          { "name": "customerId", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 } }
+          {
+            "name": "customerId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "minimum": 1 }
+          }
         ],
         "responses": {
           "200": { "description": "Member" },
@@ -49,12 +71,81 @@
       "get": {
         "summary": "Lịch sử điểm",
         "parameters": [
-          { "name": "customerId", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 } },
-          { "name": "page", "in": "query", "schema": { "type": "integer", "minimum": 1, "default": 1 } },
-          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 20, "default": 20 } }
+          {
+            "name": "customerId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "minimum": 1 }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "default": 1 }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20,
+              "default": 20
+            }
+          }
         ],
         "responses": {
           "200": { "description": "Paged loyalty history" }
+        }
+      }
+    },
+    "/api/v1/pos/sales": {
+      "post": {
+        "summary": "POS cash cho khách thành viên, có thể đổi điểm",
+        "description": "Nhân viên/admin. Server lấy giá/tồn từ database; có thể truyền customer_id và points_used. Điểm đổi được xử lý sau voucher (nếu có); điểm tích chỉ tính từ final_amount của đơn đã thanh toán. Idempotency key gắn với khách, voucher, điểm và dòng hàng.",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string", "minLength": 1, "maxLength": 64 }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["items"],
+                "properties": {
+                  "customer_id": { "type": "integer", "minimum": 1 },
+                  "voucher_code": { "type": "string", "maxLength": 50 },
+                  "points_used": { "type": "integer", "minimum": 0 },
+                  "items": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "object",
+                      "required": ["product_id", "quantity"],
+                      "properties": {
+                        "product_id": { "type": "integer", "minimum": 1 },
+                        "quantity": { "type": "integer", "minimum": 1 }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Sale created; stock, voucher and loyalty changes committed together"
+          },
+          "409": {
+            "description": "Insufficient points/stock or voucher limit conflict"
+          },
+          "422": { "description": "Business rule violation" }
         }
       }
     }

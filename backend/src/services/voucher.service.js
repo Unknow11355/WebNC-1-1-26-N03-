@@ -21,12 +21,27 @@ function positive(value, field) {
   return n;
 }
 
-function validateRule(voucher, total) {
+function todayInVietnam() {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+}
+
+function expiryDateText(value) {
+  if (!value) return null;
+  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  return String(value).slice(0, 10);
+}
+
+export function calculateVoucherDiscount(voucher, total, today = todayInVietnam()) {
   if (!voucher) throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy voucher');
   if (voucher.status !== 'active')
     throw new AppError(422, 'BUSINESS_RULE_VIOLATION', 'Voucher không hoạt động');
-  if (voucher.expiry_date && new Date(voucher.expiry_date) < new Date())
-    throw new AppError(410, 'EXPIRED', 'Voucher đã hết hạn');
+  const expiry = expiryDateText(voucher.expiry_date);
+  if (expiry && expiry < today) throw new AppError(410, 'EXPIRED', 'Voucher đã hết hạn');
   if (voucher.usage_limit !== null && Number(voucher.used_count) >= Number(voucher.usage_limit))
     throw new AppError(409, 'CONFLICT', 'Voucher đã hết lượt sử dụng');
   const amount = Number(total);
@@ -46,7 +61,7 @@ function validateRule(voucher, total) {
   return { voucher, discount_amount: Math.min(discount, amount) };
 }
 
-export function createVoucherService(repository) {
+export function createVoucherService(repository, transactionManager = null) {
   if (!repository) throw new TypeError('Voucher service requires repository');
   function normalize(input, current = {}) {
     const code = String(input?.code ?? current.code ?? '')
@@ -126,7 +141,53 @@ export function createVoucherService(repository) {
         throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy voucher');
       await repository.setInactive(voucherId);
     },
-    async validate(input) {
+    async available(auth) {
+      if (auth?.role !== 'customer')
+        throw new AppError(403, 'FORBIDDEN', 'Chỉ khách hàng được xem voucher khả dụng');
+      return repository.listAvailableForCustomer(Number(auth.userId), todayInVietnam());
+    },
+    async mine(auth) {
+      if (auth?.role !== 'customer')
+        throw new AppError(403, 'FORBIDDEN', 'Chỉ khách hàng được xem voucher đã lưu');
+      return repository.listForCustomer(Number(auth.userId), todayInVietnam());
+    },
+    async forCustomer(auth, rawUserId) {
+      if (!['employee', 'admin'].includes(auth?.role))
+        throw new AppError(403, 'FORBIDDEN', 'Chỉ nhân viên được tra voucher khách hàng');
+      const userId = integerId(rawUserId);
+      return repository.listForCustomer(userId, todayInVietnam());
+    },
+    async claim(auth, input) {
+      if (auth?.role !== 'customer')
+        throw new AppError(403, 'FORBIDDEN', 'Chỉ khách hàng được lưu voucher');
+      if (!transactionManager)
+        throw new AppError(500, 'INTERNAL_ERROR', 'Voucher transaction chưa được cấu hình');
+      const raw = String(input?.voucher_id ?? input?.voucher_code ?? '').trim();
+      if (!raw)
+        throw new AppError(400, 'VALIDATION_ERROR', 'voucher_id hoặc voucher_code là bắt buộc');
+      const userId = integerId(auth.userId);
+      const today = todayInVietnam();
+      return transactionManager.run(async (connection) => {
+        const voucher = /^\d+$/.test(raw)
+          ? await repository.findById(Number(raw), connection, true)
+          : await repository.findByCode(raw.toUpperCase(), connection, true);
+        const expiry = expiryDateText(voucher?.expiry_date);
+        if (!voucher) throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy voucher');
+        if (voucher.status !== 'active')
+          throw new AppError(422, 'BUSINESS_RULE_VIOLATION', 'Voucher không hoạt động');
+        if (expiry && expiry < today) throw new AppError(410, 'EXPIRED', 'Voucher đã hết hạn');
+        if (
+          voucher.usage_limit !== null &&
+          Number(voucher.used_count) >= Number(voucher.usage_limit)
+        )
+          throw new AppError(409, 'CONFLICT', 'Voucher đã hết lượt sử dụng');
+        await repository.claimForCustomer(userId, voucher.voucher_id, connection);
+        return repository.findCustomerVoucher(userId, voucher.voucher_id, connection);
+      });
+    },
+    async validate(auth, input) {
+      if (auth?.role !== 'customer')
+        throw new AppError(403, 'FORBIDDEN', 'Chỉ khách hàng được kiểm tra voucher');
       const raw = String(input?.voucher_id ?? input?.voucher_code ?? '').trim();
       const total = Number(input?.order_amount);
       if (!raw)
@@ -136,7 +197,12 @@ export function createVoucherService(repository) {
       const voucher = /^\d+$/.test(raw)
         ? await repository.findById(Number(raw))
         : await repository.findByCode(raw.toUpperCase());
-      return validateRule(voucher, total);
+      const result = calculateVoucherDiscount(voucher, total);
+      if (
+        !(await repository.findCustomerVoucher(integerId(auth.userId), result.voucher.voucher_id))
+      )
+        throw new AppError(403, 'FORBIDDEN', 'Bạn cần lưu voucher trước khi sử dụng');
+      return result;
     },
   };
 }

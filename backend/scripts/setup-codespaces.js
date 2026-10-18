@@ -27,6 +27,9 @@ try {
     '10_buoi6_migration.sql',
     '13_buoi7_vinh_migration.sql',
     'cn09_shift_end.sql',
+    '17_buoi7_negative_constraints.sql',
+    '18_cn10_loyalty.sql',
+    '20_buoi9_vinh_indexes.sql',
   ]) {
     const [done] = await db.execute('SELECT name FROM codespaces_migrations WHERE name=?', [file]);
     if (done.length) continue;

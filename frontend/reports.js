@@ -1,164 +1,259 @@
-// ==========================================
-// PHẦN 1: KHỞI TẠO VÀ VẼ BIỂU ĐỒ (Nhiệm vụ V5)
-// ==========================================
-let currentChart = null;
+const $ = (selector) => document.querySelector(selector);
+const state = {
+  chart: null,
+  headers: ["Ngày thanh toán", "Số đơn đã thanh toán", "Doanh thu", "Giảm giá"],
+  rows: [],
+  reportName: "Bao_Cao_Doanh_Thu",
+};
 
-function drawChart(chartType, chartLabels, chartData, datasetLabel, bgColor) {
-    const ctx = document.getElementById('myReportChart').getContext('2d');
+function localDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
 
-    // Xóa biểu đồ cũ nếu có
-    if (currentChart) {
-        currentChart.destroy();
+function formatMoney(value) {
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+    maximumFractionDigits: 0,
+  }).format(Number(value) || 0);
+}
+
+function formatNumber(value) {
+  return new Intl.NumberFormat("vi-VN").format(Number(value) || 0);
+}
+
+function setMessage(message, kind = "info") {
+  const region = $("#reportMessage");
+  region.textContent = message;
+  region.dataset.kind = kind;
+  region.hidden = !message;
+}
+
+function setLoading(loading) {
+  $("#btn-load").disabled = loading;
+  $("#btn-export").disabled = loading || state.rows.length === 0;
+  $("#btn-load").textContent = loading ? "Đang tải…" : "Xem báo cáo";
+}
+
+function renderSummary(summary) {
+  $("#orderCount").textContent = formatNumber(summary.order_count);
+  $("#revenue").textContent = formatMoney(summary.revenue);
+  $("#discount").textContent = formatMoney(summary.discount_amount);
+}
+
+function renderTable(rows) {
+  const body = $("#tableBody");
+  body.replaceChildren();
+  if (!rows.length) {
+    const row = document.createElement("tr");
+    const cell = document.createElement("td");
+    cell.colSpan = state.headers.length;
+    cell.textContent = "Không có đơn đã thanh toán trong khoảng thời gian này.";
+    row.append(cell);
+    body.append(row);
+    return;
+  }
+
+  for (const rowData of rows) {
+    const row = document.createElement("tr");
+    for (const value of rowData) {
+      const cell = document.createElement("td");
+      cell.textContent = value;
+      row.append(cell);
     }
+    body.append(row);
+  }
+}
 
-    currentChart = new Chart(ctx, {
-        type: chartType,
-        data: {
-            labels: chartLabels,
-            datasets: [{
-                label: datasetLabel,
-                data: chartData,
-                backgroundColor: bgColor,
-                borderColor: '#333',
-                borderWidth: 1
-            }]
+function eachDate(from, to) {
+  const dates = [];
+  const current = new Date(`${from}T00:00:00Z`);
+  const last = new Date(`${to}T00:00:00Z`);
+  while (current <= last) {
+    dates.push(current.toISOString().slice(0, 10));
+    current.setUTCDate(current.getUTCDate() + 1);
+  }
+  return dates;
+}
+
+function drawChart(labels, values) {
+  if (state.chart) state.chart.destroy();
+  if (typeof Chart !== "function") {
+    setMessage(
+      "Không tải được thư viện biểu đồ. Bảng số liệu và CSV vẫn dùng được.",
+      "warning",
+    );
+    return;
+  }
+  state.chart = new Chart($("#myReportChart"), {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Doanh thu (VND)",
+          data: values,
+          borderColor: "#176b87",
+          backgroundColor: "rgba(23, 107, 135, 0.14)",
+          fill: true,
+          tension: 0.25,
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false
-        }
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        tooltip: {
+          callbacks: { label: (context) => formatMoney(context.parsed.y) },
+        },
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { callback: (value) => formatMoney(value) },
+        },
+      },
+    },
+  });
+}
+
+async function loadRevenue() {
+  const from = $("#fromDate").value;
+  const to = $("#toDate").value;
+  if (!from || !to) {
+    setMessage("Vui lòng chọn ngày bắt đầu và ngày kết thúc.", "error");
+    return;
+  }
+  if (from > to) {
+    setMessage("Ngày bắt đầu phải trước hoặc bằng ngày kết thúc.", "error");
+    return;
+  }
+  if (
+    (new Date(`${to}T00:00:00+07:00`) - new Date(`${from}T00:00:00+07:00`)) /
+      86_400_000 >=
+    366
+  ) {
+    setMessage("Khoảng thời gian tối đa là 366 ngày.", "error");
+    return;
+  }
+
+  const token = sessionStorage.getItem("token");
+  if (!token) {
+    setMessage(
+      "Phiên đăng nhập không còn. Vui lòng đăng nhập bằng tài khoản quản trị rồi mở lại báo cáo.",
+      "error",
+    );
+    return;
+  }
+
+  setMessage("");
+  state.rows = [];
+  setLoading(true);
+  try {
+    const query = new URLSearchParams({ from, to });
+    const response = await fetch(`/api/v1/reports/revenue?${query}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
     });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      if (response.status === 401) {
+        sessionStorage.removeItem("token");
+        setMessage("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.", "error");
+      } else if (response.status === 403) {
+        setMessage(
+          "Chỉ tài khoản quản trị mới được xem báo cáo doanh thu.",
+          "error",
+        );
+      } else {
+        setMessage(
+          payload.error?.message ||
+            `Không tải được báo cáo (${response.status}).`,
+          "error",
+        );
+      }
+      return;
+    }
+
+    const { summary = {}, series = [] } = payload.data || {};
+    const daily = new Map(
+      series.map((item) => [String(item.report_date).slice(0, 10), item]),
+    );
+    const dates = eachDate(from, to);
+    const rowsByDate = dates.map((date) => {
+      const item = daily.get(date) || {};
+      return [
+        date,
+        formatNumber(item.order_count),
+        formatMoney(item.revenue),
+        formatMoney(item.discount_amount),
+      ];
+    });
+    state.rows = rowsByDate;
+    renderSummary(summary);
+    renderTable(rowsByDate);
+    $("#reportTitle").textContent = `Báo cáo doanh thu (${from} đến ${to})`;
+    drawChart(
+      dates,
+      dates.map((date) => Number(daily.get(date)?.revenue) || 0),
+    );
+    $("#btn-export").disabled = false;
+
+    const missingPaidAt =
+      Number(payload.data?.data_quality?.paid_without_paid_at) || 0;
+    if (missingPaidAt > 0) {
+      setMessage(
+        `Cảnh báo chất lượng dữ liệu: có ${formatNumber(missingPaidAt)} đơn đã thanh toán nhưng thiếu thời điểm paid_at; các đơn này không được tự gán vào ngày báo cáo.`,
+        "warning",
+      );
+    }
+  } catch {
+    setMessage(
+      "Không kết nối được máy chủ báo cáo. Vui lòng thử lại sau.",
+      "error",
+    );
+  } finally {
+    setLoading(false);
+  }
 }
 
-// ==========================================
-// PHẦN 2: DỮ LIỆU BÁO CÁO VÀ KẾT XUẤT BẢNG
-// ==========================================
-let currentReportData = [];
-let currentHeaders = [];
-let currentReportName = 'Bao_Cao';
-
-function loadReport(type) {
-    const from = document.getElementById('fromDate').value || '2026-10-01';
-    const to = document.getElementById('toDate').value || '2026-10-07';
-
-    if (type === 'revenue') {
-        document.getElementById('reportTitle').innerText = `Báo cáo Doanh Thu (${from} đến ${to})`;
-        currentHeaders = ['Ngày', 'Số lượng đơn', 'Doanh thu', 'Ghi chú'];
-        currentReportData = [
-            ['2026-10-01', 10, 1000000, 'Bình thường'],
-            ['2026-10-02', 12, 1200000, 'Bình thường'],
-            ['2026-10-06', 15, 1500000, 'Bình thường'],
-            ['2026-10-07', 20, 2000000, "=CMD|' /C calc'!A0"] // Dữ liệu mô phỏng mã độc
-        ];
-        currentReportName = 'Bao_Cao_Doanh_Thu';
-
-        // Vẽ biểu đồ Đường
-        const labels = currentReportData.map(row => row[0]); // Lấy mảng Ngày
-        const data = currentReportData.map(row => row[2]);   // Lấy mảng Doanh thu
-        drawChart('line', labels, data, 'Doanh thu (VNĐ)', 'rgba(54, 162, 235, 0.5)');
-    }
-    else if (type === 'products') {
-        document.getElementById('reportTitle').innerText = `Báo cáo Sản Phẩm (${from} đến ${to})`;
-        currentHeaders = ['Tên Sản Phẩm', 'Số Lượng Bán', 'Tồn Kho'];
-        currentReportData = [
-            ['Táo New Zealand', 45, 100],
-            ['Sữa Vinamilk', 120, 50],
-            ['Bánh mì', 80, 20],
-            ['Nước suối', 200, 300]
-        ];
-        currentReportName = 'Bao_Cao_San_Pham';
-
-        // Vẽ biểu đồ Tròn
-        const labels = currentReportData.map(row => row[0]);
-        const data = currentReportData.map(row => row[1]); // Lấy mảng Số lượng bán
-        const colors = ['#ff6384', '#36a2eb', '#ffce56', '#4bc0c0'];
-        drawChart('doughnut', labels, data, 'Số lượng bán', colors);
-    }
-    else if (type === 'employees') {
-        document.getElementById('reportTitle').innerText = `Báo cáo Nhân Viên (${from} đến ${to})`;
-        currentHeaders = ['Tên Nhân Viên', 'Số Đơn Hàng', 'Đánh giá'];
-        currentReportData = [
-            ['Nguyễn Văn A', 35, 'Tốt'],
-            ['Trần Thị B', 42, 'Xuất sắc'],
-            ['Lê Văn C', 28, 'Khá']
-        ];
-        currentReportName = 'Bao_Cao_Nhan_Vien';
-
-        // Vẽ biểu đồ Cột
-        const labels = currentReportData.map(row => row[0]);
-        const data = currentReportData.map(row => row[1]); // Lấy mảng Số đơn hàng
-        drawChart('bar', labels, data, 'Số đơn hàng đã xử lý', 'rgba(75, 192, 192, 0.6)');
-    }
-
-    renderTable(); // Gọi hàm cập nhật bảng
+function csvCell(value) {
+  let text = String(value ?? "");
+  if (/^[\t\r ]*[=+\-@]/.test(text)) text = `'${text}`;
+  return `"${text.replace(/"/g, '""')}"`;
 }
 
-function renderTable() {
-    const thead = document.getElementById('tableHead');
-    const tbody = document.getElementById('tableBody');
-    thead.innerHTML = `<tr>${currentHeaders.map(h => `<th>${h}</th>`).join('')}</tr>`;
-    tbody.innerHTML = currentReportData.map(row =>
-        `<tr>${row.map(cell => `<td>${cell}</td>`).join('')}</tr>`
-    ).join('');
+function exportCsv() {
+  if (!state.rows.length) return;
+  const content =
+    "\uFEFF" +
+    [state.headers, ...state.rows]
+      .map((row) => row.map(csvCell).join(","))
+      .join("\r\n");
+  const url = URL.createObjectURL(
+    new Blob([content], { type: "text/csv;charset=utf-8" }),
+  );
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${state.reportName}_${localDate(new Date())}.csv`;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
 
-// HÀM QUAN TRỌNG: XUẤT CSV CHỐNG FORMULA INJECTION (Ca test B7-07)
-function handleExport() {
-    if (currentReportData.length === 0) {
-        alert("Không có dữ liệu!");
-        return;
-    }
-
-    const sanitizeCell = (cell) => {
-        if (cell == null) return '';
-        let str = String(cell);
-
-        // BẢO MẬT: Thêm dấu nháy đơn trước các ký tự nguy hiểm (=, +, -, @)
-        if (/^[=+\-@]/.test(str)) {
-            str = "'" + str;
-        }
-
-        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-            str = `"${str.replace(/"/g, '""')}"`;
-        }
-        return str;
-    };
-
-    const BOM = "\uFEFF"; // Hỗ trợ Tiếng Việt
-    const headerRow = currentHeaders.map(sanitizeCell).join(',');
-    const rows = currentReportData.map(row => row.map(sanitizeCell).join(','));
-    const csvContent = BOM + headerRow + '\n' + rows.join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `${currentReportName}_${Date.now()}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
-
-// ==========================================
-// PHẦN 3: GẮN SỰ KIỆN CHO CÁC NÚT (CSP Compliant)
-// ==========================================
-document.addEventListener('DOMContentLoaded', () => {
-    const btnRevenue = document.getElementById('btn-revenue');
-    if (btnRevenue) {
-        btnRevenue.addEventListener('click', () => loadReport('revenue'));
-    }
-
-    const btnProducts = document.getElementById('btn-products');
-    if (btnProducts) {
-        btnProducts.addEventListener('click', () => loadReport('products'));
-    }
-
-    const btnEmployees = document.getElementById('btn-employees');
-    if (btnEmployees) {
-        btnEmployees.addEventListener('click', () => loadReport('employees'));
-    }
-
-    const btnExport = document.getElementById('btn-export');
-    if (btnExport) {
-        btnExport.addEventListener('click', handleExport);
-    }
+document.addEventListener("DOMContentLoaded", () => {
+  const today = new Date();
+  const sevenDaysAgo = new Date(today);
+  sevenDaysAgo.setDate(today.getDate() - 6);
+  $("#fromDate").value = localDate(sevenDaysAgo);
+  $("#toDate").value = localDate(today);
+  $("#btn-load").addEventListener("click", loadRevenue);
+  $("#btn-export").addEventListener("click", exportCsv);
+  $("#btn-export").disabled = true;
+  loadRevenue();
 });

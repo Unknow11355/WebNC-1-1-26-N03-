@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { createReviewController } from '../controllers/review.controller.js';
 
-export function createReviewRoutes({ service, requireAuth, requireRole }) {
+export function createReviewRoutes({ service, requireAuth }) {
   if (!service || typeof requireAuth !== 'function') {
     throw new TypeError('Review routes require service and auth middleware');
   }
