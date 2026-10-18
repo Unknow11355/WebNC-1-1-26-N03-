@@ -2,14 +2,15 @@ export function createPaymentController(service) {
   if (!service) throw new TypeError('Payment controller requires service');
 
   function clientIp(req) {
-    const forwarded = req.headers["x-forwarded-for"];
-    if (forwarded) return String(forwarded).split(",")[0].trim();
-    return req.ip || req.socket?.remoteAddress || "127.0.0.1";
+    const forwarded = req.headers['x-forwarded-for'];
+    if (forwarded) return String(forwarded).split(',')[0].trim();
+    return req.ip || req.socket?.remoteAddress || '127.0.0.1';
   }
 
   // Giao diện tự động báo kết quả khi VNPay trả về
   function renderReturnHtml({ title, message, paymentStatus, orderId }) {
-    const statusColor = paymentStatus === "paid" ? "#1B7F4D" : paymentStatus === "pending" ? "#B45309" : "#B91C1C";
+    const statusColor =
+      paymentStatus === 'paid' ? '#1B7F4D' : paymentStatus === 'pending' ? '#B45309' : '#B91C1C';
     return `<!DOCTYPE html>
     <html lang="vi">
     <head>
@@ -28,7 +29,7 @@ export function createPaymentController(service) {
       <div class="card">
         <h1>${title}</h1>
         <p>${message}</p>
-        <p>Mã đơn hàng: <strong>#${orderId || "-"}</strong></p>
+        <p>Mã đơn hàng: <strong>#${orderId || '-'}</strong></p>
         <a href="/#orders" class="btn">Quay lại quản lý đơn hàng</a>
       </div>
     </body>
@@ -39,7 +40,7 @@ export function createPaymentController(service) {
     async createVnpay(req, res) {
       const userId = req.user.user_id;
       const orderId = Number(req.body.order_id || req.body.orderId);
-      if (!orderId) return res.status(400).json({ success: false, message: "Thiếu mã đơn hàng" });
+      if (!orderId) return res.status(400).json({ success: false, message: 'Thiếu mã đơn hàng' });
 
       const data = await service.createVnpayUrl(userId, orderId, clientIp(req));
       res.json({ success: true, data });
@@ -47,14 +48,25 @@ export function createPaymentController(service) {
 
     async vnpayReturn(req, res) {
       const result = await service.processVnpayCallback(req.query);
-      const title = result.paymentStatus === "paid" ? "Thanh toán thành công" : "Thanh toán thất bại";
-      const message = result.paymentStatus === "paid" ? "VNPay đã xác nhận thanh toán." : "Giao dịch không thành công hoặc đã bị hủy.";
-      res.status(200).send(renderReturnHtml({ title, message, paymentStatus: result.paymentStatus, orderId: result.orderId }));
+      const title =
+        result.paymentStatus === 'paid' ? 'Thanh toán thành công' : 'Thanh toán thất bại';
+      const message =
+        result.paymentStatus === 'paid'
+          ? 'VNPay đã xác nhận thanh toán.'
+          : 'Giao dịch không thành công hoặc đã bị hủy.';
+      res.status(200).send(
+        renderReturnHtml({
+          title,
+          message,
+          paymentStatus: result.paymentStatus,
+          orderId: result.orderId,
+        }),
+      );
     },
 
     async vnpayIpn(req, res) {
       const result = await service.processVnpayCallback(req.query);
       res.status(200).json({ RspCode: result.rspCode, Message: result.message });
-    }
+    },
   };
 }

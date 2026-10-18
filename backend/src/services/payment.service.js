@@ -21,21 +21,25 @@ export function createPaymentService({ paymentRepository }) {
 
   function sortAndEncodeParams(params) {
     return Object.keys(params)
-      .filter((key) => params[key] !== undefined && params[key] !== null && params[key] !== "")
+      .filter((key) => params[key] !== undefined && params[key] !== null && params[key] !== '')
       .sort()
       .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(String(params[key]))}`)
-      .join("&");
+      .join('&');
   }
 
   function hmacSha512(secret, data) {
-    return crypto.createHmac("sha512", secret).update(Buffer.from(data, "utf-8")).digest("hex");
+    return crypto.createHmac('sha512', secret).update(Buffer.from(data, 'utf-8')).digest('hex');
   }
 
   function formatVnpDate(date = new Date()) {
-    const pad = (n) => String(n).padStart(2, "0");
+    const pad = (n) => String(n).padStart(2, '0');
     return (
-      date.getFullYear().toString() + pad(date.getMonth() + 1) + pad(date.getDate()) +
-      pad(date.getHours()) + pad(date.getMinutes()) + pad(date.getSeconds())
+      date.getFullYear().toString() +
+      pad(date.getMonth() + 1) +
+      pad(date.getDate()) +
+      pad(date.getHours()) +
+      pad(date.getMinutes()) +
+      pad(date.getSeconds())
     );
   }
 
@@ -57,17 +61,17 @@ export function createPaymentService({ paymentRepository }) {
       const vnpAmount = Math.round(Number(order.final_amount) * 100);
 
       const params = {
-        vnp_Version: "2.1.0",
-        vnp_Command: "pay",
+        vnp_Version: '2.1.0',
+        vnp_Command: 'pay',
         vnp_TmnCode: config.tmnCode,
         vnp_Amount: vnpAmount,
-        vnp_CurrCode: "VND",
+        vnp_CurrCode: 'VND',
         vnp_TxnRef: txnRef,
         vnp_OrderInfo: `Thanh toan don hang #${orderId}`,
-        vnp_OrderType: "other",
-        vnp_Locale: "vn",
+        vnp_OrderType: 'other',
+        vnp_Locale: 'vn',
         vnp_ReturnUrl: config.returnUrl,
-        vnp_IpAddr: ipAddr || "127.0.0.1",
+        vnp_IpAddr: ipAddr || '127.0.0.1',
         vnp_CreateDate: formatVnpDate(createDate),
         vnp_ExpireDate: formatVnpDate(expireDate),
       };
@@ -89,34 +93,77 @@ export function createPaymentService({ paymentRepository }) {
       const signData = sortAndEncodeParams(input);
       const expectedHash = hmacSha512(config.hashSecret, signData);
 
-      const txnRef = input.vnp_TxnRef || "";
+      const txnRef = input.vnp_TxnRef || '';
       const orderIdMatch = String(txnRef).match(/^(\d+)/);
       const orderId = orderIdMatch ? Number(orderIdMatch[1]) : null;
 
       if (!receivedHash || receivedHash !== expectedHash) {
-        return { success: false, httpStatus: 400, rspCode: "97", message: "Sai chữ ký bảo mật", paymentStatus: "failed", orderId };
+        return {
+          success: false,
+          httpStatus: 400,
+          rspCode: '97',
+          message: 'Sai chữ ký bảo mật',
+          paymentStatus: 'failed',
+          orderId,
+        };
       }
       if (!orderId) {
-        return { success: false, httpStatus: 400, rspCode: "01", message: "Không tìm thấy đơn hàng", paymentStatus: "failed", orderId: null };
+        return {
+          success: false,
+          httpStatus: 400,
+          rspCode: '01',
+          message: 'Không tìm thấy đơn hàng',
+          paymentStatus: 'failed',
+          orderId: null,
+        };
       }
 
       const order = await paymentRepository.getOrderForPayment(orderId);
       if (!order) {
-        return { success: false, httpStatus: 404, rspCode: "01", message: "Order not found", paymentStatus: "failed", orderId };
+        return {
+          success: false,
+          httpStatus: 404,
+          rspCode: '01',
+          message: 'Order not found',
+          paymentStatus: 'failed',
+          orderId,
+        };
       }
 
       const expectedAmount = Math.round(Number(order.final_amount) * 100);
       if (expectedAmount !== Number(input.vnp_Amount || 0)) {
-        return { success: false, httpStatus: 400, rspCode: "04", message: "Sai số tiền", paymentStatus: "failed", orderId };
+        return {
+          success: false,
+          httpStatus: 400,
+          rspCode: '04',
+          message: 'Sai số tiền',
+          paymentStatus: 'failed',
+          orderId,
+        };
       }
 
-      if (input.vnp_ResponseCode === "00") {
-        const result = await paymentRepository.markOrderPaid(orderId, txnRef, "vnpay");
-        return { success: true, httpStatus: 200, rspCode: "00", message: "Confirm Success", paymentStatus: "paid", orderId, alreadyPaid: result.alreadyPaid };
+      if (input.vnp_ResponseCode === '00') {
+        const result = await paymentRepository.markOrderPaid(orderId, txnRef, 'vnpay');
+        return {
+          success: true,
+          httpStatus: 200,
+          rspCode: '00',
+          message: 'Confirm Success',
+          paymentStatus: 'paid',
+          orderId,
+          alreadyPaid: result.alreadyPaid,
+        };
       } else {
-        await paymentRepository.markOrderFailed(orderId, txnRef, "vnpay");
-        return { success: true, httpStatus: 200, rspCode: "00", message: "Confirm Success", paymentStatus: "failed", orderId };
+        await paymentRepository.markOrderFailed(orderId, txnRef, 'vnpay');
+        return {
+          success: true,
+          httpStatus: 200,
+          rspCode: '00',
+          message: 'Confirm Success',
+          paymentStatus: 'failed',
+          orderId,
+        };
       }
-    }
+    },
   };
 }
