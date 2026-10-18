@@ -9,8 +9,10 @@ import {
 import { barcodeView, scheduleView, stopScanner } from "./staff-tools.js";
 import { shiftsView } from "./shifts.js";
 const $ = (s) => document.querySelector(s);
+// Remove legacy browser-readable credentials after upgrading to HttpOnly sessions.
+sessionStorage.removeItem("token");
+localStorage.removeItem("token");
 const state = {
-  token: sessionStorage.getItem("token") || "",
   user: null,
   categories: [],
   page: 1,
@@ -51,7 +53,6 @@ function toast(message) {
   noticeTimer = setTimeout(() => ($("#notice").textContent = ""), 6000);
 }
 function resetSession() {
-  state.token = "";
   state.user = null;
   state.pos = [];
   state.posRequest = null;
@@ -81,9 +82,9 @@ async function api(path, { method = "GET", body, headers = {} } = {}) {
   try {
     response = await fetch("/api/v1" + path, {
       method,
+      credentials: "same-origin",
       headers: {
         ...(body ? { "Content-Type": "application/json" } : {}),
-        ...(state.token ? { Authorization: "Bearer " + state.token } : {}),
         ...headers,
       },
       body: body ? JSON.stringify(body) : undefined,
@@ -96,7 +97,7 @@ async function api(path, { method = "GET", body, headers = {} } = {}) {
   const data =
     response.status === 204 ? {} : await response.json().catch(() => ({}));
   if (!response.ok) {
-    if (response.status === 401 && state.token) {
+    if (response.status === 401 && state.user) {
       resetSession();
       $("#dialog").close();
       location.hash = "login";
@@ -531,11 +532,10 @@ async function render() {
           } else {
             const result = await api("/auth/login", {
               method: "POST",
+              headers: { "X-Session-Mode": "cookie" },
               body: data,
             });
-            state.token = result.data.access_token;
-            sessionStorage.setItem("token", state.token);
-            state.user = (await api("/auth/me")).data;
+            state.user = result.data.user;
             restorePos();
             location.hash = "shop";
           }
@@ -1491,7 +1491,7 @@ async function action(name, id) {
     modal("Đánh giá sản phẩm", form(fields, "Gửi đánh giá"), async (d) => {
       await api("/reviews", {
         method: "POST",
-        headers: { Authorization: "Bearer " + state.token }, // Thêm dòng này
+        credentials: "same-origin",
         body: {
           product_id: Number(id),
           rating: Number(d.rating),
@@ -1544,7 +1544,7 @@ document.addEventListener(
   true,
 );
 async function start() {
-  if (state.token) {
+  {
     try {
       state.user = (await api("/auth/me")).data;
       restorePos();

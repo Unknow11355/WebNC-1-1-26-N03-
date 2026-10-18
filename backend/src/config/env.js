@@ -21,17 +21,6 @@ export const env = {
   corsOrigins: (process.env.CORS_ORIGINS ?? 'http://localhost:5173,http://127.0.0.1:5173')
     .split(',')
     .map((value) => value.trim())
-<<<<<<< HEAD
-    .filter(Boolean),
-
-  // --- CẤU HÌNH VNPAY ---
-  vnpTmnCode: process.env.VNP_TMNCODE ?? '',
-  vnpHashSecret: process.env.VNP_HASHSECRET ?? '',
-  vnpUrl: process.env.VNP_URL ?? '',
-  vnpApiUrl: process.env.VNP_API_URL ?? '',
-  vnpReturnUrl: process.env.VNP_RETURN_URL ?? '',
-};
-=======
     .filter(Boolean)
     .concat(
       process.env.CODESPACE_NAME
@@ -40,5 +29,9 @@ export const env = {
           ]
         : [],
     ),
+  vnpTmnCode: process.env.VNP_TMNCODE ?? '',
+  vnpHashSecret: process.env.VNP_HASHSECRET ?? '',
+  vnpUrl: process.env.VNP_URL ?? '',
+  vnpApiUrl: process.env.VNP_API_URL ?? '',
+  vnpReturnUrl: process.env.VNP_RETURN_URL ?? '',
 };
->>>>>>> ae1dd6d49300160d75d6beea0525b4c9e82c5c23

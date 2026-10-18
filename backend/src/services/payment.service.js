@@ -25,13 +25,11 @@ export function createPaymentService({ paymentRepository }) {
     return Object.keys(params)
       .filter((key) => params[key] !== undefined && params[key] !== null && params[key] !== '')
       .sort()
-<<<<<<< HEAD
-      .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(String(params[key])).replace(/%20/g, "+")}`)
-      .join("&");
-=======
-      .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(String(params[key]))}`)
+      .map(
+        (key) =>
+          `${encodeURIComponent(key)}=${encodeURIComponent(String(params[key])).replace(/%20/g, '+')}`,
+      )
       .join('&');
->>>>>>> ae1dd6d49300160d75d6beea0525b4c9e82c5c23
   }
 
   function hmacSha512(secret, data) {

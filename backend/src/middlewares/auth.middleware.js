@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { AppError } from '../errors/app-error.js';
+import { readSessionCookie } from './session-cookie.js';
 
 function parseBearerToken(header) {
   const match = /^Bearer\s+(.+)$/i.exec(header ?? '');
@@ -23,8 +24,9 @@ export function createAuthMiddleware({ userRepository, sessionRepository, jwtSec
 
   async function requireAuth(req, res, next) {
     try {
-      const token = parseBearerToken(req.get('authorization'));
-      if (!token) throw new AppError(401, 'UNAUTHORIZED', 'Thiếu Bearer token');
+      const header = req.get('authorization');
+      const token = header ? parseBearerToken(header) : readSessionCookie(req);
+      if (!token) throw new AppError(401, 'UNAUTHORIZED', 'Thiếu thông tin phiên đăng nhập');
       const payload = jwt.verify(token, jwtSecret, { algorithms: ['HS256'] });
       const userId = parseUserId(payload.userId);
       if (!payload.jti) throw new AppError(401, 'UNAUTHORIZED', 'Token thiếu mã phiên');
@@ -37,6 +39,7 @@ export function createAuthMiddleware({ userRepository, sessionRepository, jwtSec
         throw new AppError(401, 'UNAUTHORIZED', 'Tài khoản không còn hợp lệ');
       req.auth = { userId, role: user.role_name };
       req.sessionId = payload.jti;
+      res.setHeader('Cache-Control', 'no-store');
       return next();
     } catch (error) {
       if (error instanceof AppError) return next(error);

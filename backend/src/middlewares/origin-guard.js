@@ -1,4 +1,5 @@
 import { AppError } from '../errors/app-error.js';
+import { SESSION_COOKIE } from './session-cookie.js';
 
 // Explicit browser-origin allowlist; never trust Host/X-Forwarded-Host as policy.
 export function createOriginGuard(origins = []) {
@@ -12,7 +13,16 @@ export function createOriginGuard(origins = []) {
         : req.method;
     if (safe.has(method)) return next();
     // CLI/server clients need no Origin but must still pass route authentication.
-    if (origin === undefined && req.get('sec-fetch-site') !== 'cross-site') return next();
+    const hasCookie = (req.get('cookie') || '')
+      .split(';')
+      .some((part) => part.trim().startsWith(`${SESSION_COOKIE}=`));
+    if (
+      origin === undefined &&
+      !hasCookie &&
+      req.get('x-session-mode') !== 'cookie' &&
+      req.get('sec-fetch-site') !== 'cross-site'
+    )
+      return next();
     if (origin && origin !== 'null' && allowed.has(origin)) return next();
     return next(new AppError(403, 'ORIGIN_FORBIDDEN', 'Nguồn yêu cầu không được phép'));
   };

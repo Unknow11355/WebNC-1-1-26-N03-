@@ -39,7 +39,7 @@ test('requireAuth sets req.auth using DB role and active session, not token role
   };
   const next = nextSpy();
 
-  await middleware.requireAuth(req, {}, next);
+  await middleware.requireAuth(req, { setHeader() {} }, next);
   assert.deepEqual(req.auth, { userId: 101, role: 'customer' });
   assert.equal(req.sessionId, jti);
   assert.equal(next.calls.length, 1);

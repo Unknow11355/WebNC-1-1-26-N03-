@@ -1,4 +1,9 @@
 import { AppError } from '../errors/app-error.js';
+import {
+  readSessionCookie,
+  setSessionCookie,
+  clearSessionCookie,
+} from '../middlewares/session-cookie.js';
 
 export function createAuthController(service) {
   if (!service) throw new TypeError('Auth controller requires service');
@@ -8,10 +13,26 @@ export function createAuthController(service) {
       res.status(201).json({ success: true, data: await service.register(req.body) });
     },
     async login(req, res) {
-      res.status(200).json({ success: true, data: await service.login(req.body, req.traceId) });
+      const cookieMode = req.get('x-session-mode') === 'cookie';
+      const data = await service.login(
+        req.body,
+        req.traceId,
+        cookieMode ? readSessionCookie(req) : null,
+      );
+      res.setHeader('Cache-Control', 'no-store');
+      if (cookieMode) {
+        setSessionCookie(res, data.access_token);
+        res
+          .status(200)
+          .json({ success: true, data: { user: data.user, expires_in: data.expires_in } });
+      } else {
+        res.status(200).json({ success: true, data });
+      }
     },
     async logout(req, res) {
       await service.logout(req.sessionId);
+      clearSessionCookie(res);
+      res.setHeader('Cache-Control', 'no-store');
       res.status(204).send();
     },
     async me(req, res) {

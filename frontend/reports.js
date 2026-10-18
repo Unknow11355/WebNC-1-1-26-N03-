@@ -141,22 +141,13 @@ async function loadRevenue() {
     return;
   }
 
-  const token = sessionStorage.getItem("token");
-  if (!token) {
-    setMessage(
-      "Phiên đăng nhập không còn. Vui lòng đăng nhập bằng tài khoản quản trị rồi mở lại báo cáo.",
-      "error",
-    );
-    return;
-  }
-
   setMessage("");
   state.rows = [];
   setLoading(true);
   try {
     const query = new URLSearchParams({ from, to });
     const response = await fetch(`/api/v1/reports/revenue?${query}`, {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: "same-origin",
       cache: "no-store",
     });
     const payload = await response.json().catch(() => ({}));

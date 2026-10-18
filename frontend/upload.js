@@ -40,8 +40,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 btnUpload.innerText = "Đang tải...";
                 btnUpload.disabled = true;
 
-                // Lấy token bảo mật
-                const token = localStorage.getItem('token') || sessionStorage.getItem('token');
 
                 // GỌI API (Lưu ý: Bạn kiểm tra lại index.js xem prefix là '/api/v1/upload' hay gì khác để khớp nhé)
                // Sửa đoạn gọi fetch thành thế này:
@@ -49,10 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Sửa từ '/api/v1/upload/product-image' thành '/api/v1/uploads/product-image' (thêm chữ s):
                 const response = await fetch('/api/v1/uploads/product-image', {
                     method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                        // KHÔNG set Content-Type ở đây
-                    },
+                    credentials: 'same-origin',
                     body: formData
                 });
 

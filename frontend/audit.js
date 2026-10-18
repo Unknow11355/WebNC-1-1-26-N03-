@@ -1,8 +1,6 @@
 // Hàm lấy dữ liệu thật từ Backend API
 async function fetchAuditLogs(filter = 'ALL') {
     try {
-        // Lấy token đăng nhập từ bộ nhớ trình duyệt (để vượt qua requireAuth)
-        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
 
         // Tạo URL có chứa tham số lọc (nếu có)
         // Lưu ý: Đổi '/api/v1/audit' thành đúng đường dẫn nhóm bạn quy định trong index.js nếu khác
@@ -13,9 +11,9 @@ async function fetchAuditLogs(filter = 'ALL') {
 
         const response = await fetch(url, {
             method: 'GET',
+            credentials: 'same-origin',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}` // Gửi kèm thẻ quản trị viên
             }
         });
 

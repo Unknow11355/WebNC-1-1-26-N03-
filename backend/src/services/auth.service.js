@@ -188,7 +188,7 @@ export function createAuthService({
       return publicUser(user);
     },
 
-    async login({ email, password: plainPassword } = {}, requestId = null) {
+    async login({ email, password: plainPassword } = {}, requestId = null, previousToken = null) {
       const normalizedEmail = normalizeEmail(email);
       const suppliedPassword = String(plainPassword ?? '');
       if (!normalizedEmail || !suppliedPassword) {
@@ -222,6 +222,16 @@ export function createAuthService({
 
           const createLogin = async (connection) => {
             const accessToken = await issueToken(user, connection, requestId);
+            let previous;
+            try {
+              previous =
+                previousToken && jwt.verify(previousToken, jwtSecret, { algorithms: ['HS256'] });
+            } catch {
+              previous = null;
+            }
+            if (previous?.jti && Number(previous.userId) === Number(user.user_id)) {
+              await sessionRepository.revoke(previous.jti, connection ?? undefined);
+            }
             return { accessToken };
           };
           const result = transactionManager
