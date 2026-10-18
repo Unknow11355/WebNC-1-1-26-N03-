@@ -109,7 +109,11 @@ const reportService = createReportService(reportRepository);
 
 // --- KHỞI TẠO SERVICE CHO REVIEW VÀ PAYMENT ---
 const reviewService = createReviewService({ reviewRepository });
-const paymentService = createPaymentService({ paymentRepository });
+const paymentService = createPaymentService({
+  paymentRepository,
+  transactionManager,
+  loyaltyService,
+});
 
 const scheduleService = createScheduleService(createScheduleRepository(pool));
 const barcodeService = createBarcodeService(createBarcodeRepository(pool));
