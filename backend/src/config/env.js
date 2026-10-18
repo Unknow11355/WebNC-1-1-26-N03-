@@ -22,4 +22,11 @@ export const env = {
     .split(',')
     .map((value) => value.trim())
     .filter(Boolean),
+
+  // --- CẤU HÌNH VNPAY ---
+  vnpTmnCode: process.env.VNP_TMNCODE ?? '',
+  vnpHashSecret: process.env.VNP_HASHSECRET ?? '',
+  vnpUrl: process.env.VNP_URL ?? '',
+  vnpApiUrl: process.env.VNP_API_URL ?? '',
+  vnpReturnUrl: process.env.VNP_RETURN_URL ?? '',
 };
