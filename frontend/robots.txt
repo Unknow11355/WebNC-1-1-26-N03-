@@ -1,0 +1,7 @@
+User-agent: *
+Disallow: /api/
+Disallow: /reports.html
+Disallow: /audit.html
+Disallow: /upload.html
+
+Sitemap: {{PUBLIC_ORIGIN}}/sitemap.xml
