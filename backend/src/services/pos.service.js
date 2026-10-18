@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { AppError } from '../errors/app-error.js';
 import { invalidateReportCache } from '../cache/report-cache.js';
+import { calculateVoucherDiscount } from './voucher.service.js';
 
 const OPERATION = 'POS_CASH';
 const MAX_KEY_LENGTH = 64;
@@ -72,8 +73,6 @@ function assertUnsupportedFields(input, items) {
     'total_amount',
     'discount_amount',
     'final_amount',
-    'voucher_id',
-    'voucher_code',
     'points_discount',
   ];
 
@@ -143,9 +142,10 @@ function normalizeIdempotencyKey(value) {
   return key;
 }
 
-function canonicalPayload({ customerId, paymentMethod, note, pointsUsed, items }) {
+function canonicalPayload({ customerId, voucherValue, paymentMethod, note, pointsUsed, items }) {
   return JSON.stringify({
     customer_id: customerId,
+    voucher: voucherValue,
     payment_method: paymentMethod,
     note,
     points_used: pointsUsed,
@@ -199,7 +199,12 @@ async function readReplay({ repository, actorId, requestKey, requestHash }) {
   };
 }
 
-export function createPosService({ repository, loyaltyService = null, transactionManager }) {
+export function createPosService({
+  repository,
+  loyaltyService = null,
+  voucherRepository = null,
+  transactionManager,
+}) {
   if (!repository || !transactionManager) {
     throw new TypeError('POS service requires repository and transaction manager');
   }
@@ -230,6 +235,22 @@ export function createPosService({ repository, loyaltyService = null, transactio
       }
 
       const customerId = optionalCustomerId(payload.customer_id);
+      if (payload.voucher_id !== undefined && payload.voucher_code !== undefined)
+        throw new AppError(400, 'VALIDATION_ERROR', 'Chỉ truyền voucher_id hoặc voucher_code');
+      let voucherValue = payload.voucher_id ?? payload.voucher_code ?? null;
+      if (voucherValue !== null) {
+        voucherValue = String(voucherValue).trim();
+        if (!voucherValue || voucherValue.length > 50)
+          throw new AppError(400, 'VALIDATION_ERROR', 'Mã voucher không hợp lệ');
+        if (customerId === null)
+          throw new AppError(
+            400,
+            'VALIDATION_ERROR',
+            'Phải chọn khách hàng khi dùng voucher tại POS',
+          );
+        if (!voucherRepository)
+          throw new AppError(500, 'INTERNAL_ERROR', 'CN11 voucher repository chưa được cấu hình');
+      }
       const pointsUsed = Number(payload.points_used ?? 0);
       if (!Number.isSafeInteger(pointsUsed) || pointsUsed < 0) {
         throw new AppError(400, 'VALIDATION_ERROR', 'points_used phải là số nguyên không âm');
@@ -245,6 +266,7 @@ export function createPosService({ repository, loyaltyService = null, transactio
         .update(
           canonicalPayload({
             customerId,
+            voucherValue,
             paymentMethod,
             note,
             pointsUsed,
@@ -345,20 +367,44 @@ export function createPosService({ repository, loyaltyService = null, transactio
           }
 
           const totalAmount = formatMoneyCents(totalCents);
-          const discountAmount = '0.00';
-          let finalAmount = totalAmount;
+          let voucher = null;
+          let discountCents = 0n;
+          if (voucherValue !== null) {
+            voucher = /^\d+$/.test(voucherValue)
+              ? await voucherRepository.findById(Number(voucherValue), connection, true)
+              : await voucherRepository.findByCode(voucherValue.toUpperCase(), connection, true);
+            const voucherResult = calculateVoucherDiscount(voucher, Number(totalAmount));
+            voucher = voucherResult.voucher;
+            if (
+              !(await voucherRepository.findCustomerVoucher(
+                customerId,
+                voucher.voucher_id,
+                connection,
+                true,
+              ))
+            )
+              throw new AppError(403, 'FORBIDDEN', 'Khách hàng chưa lưu voucher này');
+            discountCents = normalizeMoneyCents(
+              voucherResult.discount_amount.toFixed(2),
+              'discount_amount',
+            );
+          }
+          const discountAmount = formatMoneyCents(discountCents);
+          const eligibleCents = totalCents - discountCents;
+          let finalCents = eligibleCents;
           let pointsPreview = {
             points_used: 0,
             points_discount: 0,
-            final_amount: Number(totalAmount),
+            final_amount: Number(formatMoneyCents(eligibleCents)),
           };
           if (pointsUsed > 0) {
             pointsPreview = loyaltyService.previewRedemption({
               pointsUsed,
-              eligibleAmount: Number(totalAmount),
+              eligibleAmount: Number(formatMoneyCents(eligibleCents)),
             });
-            finalAmount = formatMoneyCents(BigInt(Math.round(pointsPreview.final_amount * 100)));
+            finalCents -= BigInt(pointsPreview.points_discount) * 100n;
           }
+          const finalAmount = formatMoneyCents(finalCents);
           const paidAt = new Date();
 
           const orderId = await repository.createOfflineOrder(
@@ -366,6 +412,7 @@ export function createPosService({ repository, loyaltyService = null, transactio
               employeeId: actorId,
               customerId,
               shiftId,
+              voucherId: voucher?.voucher_id ?? null,
               totalAmount,
               discountAmount,
               finalAmount,
@@ -380,7 +427,7 @@ export function createPosService({ repository, loyaltyService = null, transactio
               customerId,
               orderId,
               pointsUsed: pointsPreview.points_used,
-              eligibleAmount: Number(totalAmount),
+              eligibleAmount: Number(formatMoneyCents(eligibleCents)),
               executor: connection,
             });
           }
@@ -420,6 +467,15 @@ export function createPosService({ repository, loyaltyService = null, transactio
             },
             connection,
           );
+
+          if (voucher) {
+            await voucherRepository.incrementUsed(voucher.voucher_id, connection);
+            await voucherRepository.incrementCustomerUsed(
+              customerId,
+              voucher.voucher_id,
+              connection,
+            );
+          }
 
           if (loyaltyService && customerId) {
             await loyaltyService.earnForPaidOrder({

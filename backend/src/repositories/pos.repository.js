@@ -78,7 +78,17 @@ export function createPosRepository(db) {
     },
 
     async createOfflineOrder(
-      { employeeId, customerId, shiftId, totalAmount, discountAmount, finalAmount, paidAt, note },
+      {
+        employeeId,
+        customerId,
+        shiftId,
+        voucherId,
+        totalAmount,
+        discountAmount,
+        finalAmount,
+        paidAt,
+        note,
+      },
       executor = db,
     ) {
       const [result] = await executor.execute(
@@ -90,7 +100,7 @@ export function createPosRepository(db) {
            paid_at, order_status, shipping_address, confirmed_by,
            confirmed_at, rejection_reason, note)
          VALUES
-          (?, ?, ?, NULL,
+          (?, ?, ?, ?,
            'offline', 'pickup', ?, ?, 0, 0, 0, ?,
            'cash', 'completed', 'paid', NULL,
            ?, 'completed', NULL, ?, ?, NULL, ?)`,
@@ -98,6 +108,7 @@ export function createPosRepository(db) {
           customerId,
           employeeId,
           shiftId,
+          voucherId,
           totalAmount,
           discountAmount,
           finalAmount,
@@ -139,8 +150,9 @@ export function createPosRepository(db) {
 
     async findOrderForReplay(orderId, actorId, executor = db) {
       const [rows] = await executor.execute(
-        `SELECT order_id, customer_id, employee_id, shift_id, order_type,
+        `SELECT order_id, customer_id, employee_id, shift_id, voucher_id, order_type,
                 delivery_method, total_amount, discount_amount, final_amount,
+                points_used, points_earned, points_discount,
                 payment_method, status, payment_status, order_status,
                 paid_at, confirmed_by, confirmed_at, note, created_at
          FROM orders

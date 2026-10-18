@@ -310,3 +310,113 @@ test('POS rejects inactive products', async () => {
     { code: 'CONFLICT' },
   );
 });
+
+test('POS applies selected customer points after discounts and earns from the final paid amount', async () => {
+  const { repository, state } = makeRepository();
+  const loyaltyCalls = [];
+  const service = createPosService({
+    repository,
+    loyaltyService: {
+      previewRedemption: ({ pointsUsed, eligibleAmount }) => ({
+        points_used: pointsUsed,
+        points_discount: pointsUsed * 1_000,
+        final_amount: eligibleAmount - pointsUsed * 1_000,
+      }),
+      async redeemForOrder(data) {
+        loyaltyCalls.push(['redeem', data]);
+      },
+      async earnForPaidOrder(data) {
+        loyaltyCalls.push(['earn', data]);
+        return 1;
+      },
+    },
+    transactionManager: makeTransactionManager(),
+  });
+
+  await service.sellCash(employee, 'REQ-POINTS-01', {
+    customer_id: 42,
+    points_used: 2,
+    items: [{ product_id: 1, quantity: 2 }],
+  });
+
+  const orderCall = state.calls.find(([name]) => name === 'createOfflineOrder')[2];
+  assert.equal(orderCall.customerId, 42);
+  assert.equal(orderCall.totalAmount, '20000.00');
+  assert.equal(orderCall.finalAmount, '18000.00');
+  assert.deepEqual(
+    loyaltyCalls.map(([type]) => type),
+    ['redeem', 'earn'],
+  );
+  assert.equal(loyaltyCalls[0][1].pointsUsed, 2);
+  assert.equal(loyaltyCalls[1][1].finalAmount, '18000.00');
+});
+
+test('POS applies the saved voucher before points and persists both discounts', async () => {
+  const { repository, state } = makeRepository();
+  const voucherCalls = [];
+  const loyaltyCalls = [];
+  const service = createPosService({
+    repository,
+    voucherRepository: {
+      async findByCode(code) {
+        assert.equal(code, 'SAVE5');
+        return {
+          voucher_id: 5,
+          code,
+          status: 'active',
+          expiry_date: '2026-12-31',
+          usage_limit: 2,
+          used_count: 1,
+          discount_type: 'fixed',
+          discount_value: 5_000,
+          min_order_amount: 0,
+          max_discount: null,
+        };
+      },
+      async findCustomerVoucher(customerId, voucherId) {
+        assert.equal(customerId, 42);
+        assert.equal(voucherId, 5);
+        return { user_id: customerId, voucher_id: voucherId };
+      },
+      async incrementUsed(id) {
+        voucherCalls.push(['global', id]);
+      },
+      async incrementCustomerUsed(customerId, id) {
+        voucherCalls.push(['customer', customerId, id]);
+      },
+    },
+    loyaltyService: {
+      previewRedemption: ({ pointsUsed, eligibleAmount }) => ({
+        points_used: pointsUsed,
+        points_discount: pointsUsed * 1_000,
+        final_amount: eligibleAmount - pointsUsed * 1_000,
+      }),
+      async redeemForOrder(data) {
+        loyaltyCalls.push(['redeem', data]);
+      },
+      async earnForPaidOrder(data) {
+        loyaltyCalls.push(['earn', data]);
+        return 1;
+      },
+    },
+    transactionManager: makeTransactionManager(),
+  });
+
+  await service.sellCash(employee, 'REQ-VOUCHER-01', {
+    customer_id: 42,
+    voucher_code: 'SAVE5',
+    points_used: 2,
+    items: [{ product_id: 1, quantity: 2 }],
+  });
+
+  const orderCall = state.calls.find(([name]) => name === 'createOfflineOrder')[2];
+  assert.equal(orderCall.voucherId, 5);
+  assert.equal(orderCall.discountAmount, '5000.00');
+  assert.equal(orderCall.finalAmount, '13000.00');
+  assert.equal(loyaltyCalls[0][1].eligibleAmount, 15_000);
+  assert.equal(loyaltyCalls[1][1].finalAmount, '13000.00');
+  assert.deepEqual(voucherCalls, [
+    ['global', 5],
+    ['customer', 42, 5],
+  ]);
+});
