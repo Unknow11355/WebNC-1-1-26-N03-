@@ -1,17 +1,19 @@
 import crypto from 'node:crypto';
 import { AppError } from '../errors/app-error.js';
+import { env } from '../config/env.js'; // Đã thêm dòng này để lấy cấu hình
 
 export function createPaymentService({ paymentRepository }) {
   if (!paymentRepository) throw new TypeError('Payment service requires paymentRepository');
 
-  // Cấu hình Sandbox mặc định (bạn có thể đưa vào file .env sau)
   function getConfig() {
     return {
-      tmnCode: process.env.VNP_TMN_CODE || 'X8TMBV7T', // Thay bằng mã Sandbox của nhóm nếu có
-      hashSecret: process.env.VNP_HASH_SECRET || 'IKPOGMZXOMKAYWOSQAYLDBKIFIFKAYWO',
-      paymentUrl: process.env.VNP_URL || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
-      returnUrl: process.env.VNP_RETURN_URL || 'http://localhost:5173/api/v1/payments/vnpay-return',
-      ipnUrl: process.env.VNP_IPN_URL || 'http://localhost:5173/api/v1/payments/vnpay-ipn',
+      tmnCode: env.vnpTmnCode || 'DITLW5AY',
+      hashSecret: env.vnpHashSecret || 'REMOVED_EXPOSED_CREDENTIAL',
+      paymentUrl: env.vnpUrl || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
+
+      // Đã ép cứng về cổng 3000 của Backend
+      returnUrl: 'http://localhost:3000/api/v1/payments/vnpay-return',
+      ipnUrl: 'http://localhost:3000/api/v1/payments/vnpay-ipn',
     };
   }
 
@@ -23,7 +25,7 @@ export function createPaymentService({ paymentRepository }) {
     return Object.keys(params)
       .filter((key) => params[key] !== undefined && params[key] !== null && params[key] !== "")
       .sort()
-      .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(String(params[key]))}`)
+      .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(String(params[key])).replace(/%20/g, "+")}`)
       .join("&");
   }
 

@@ -7,7 +7,6 @@ export function createPaymentController(service) {
     return req.ip || req.socket?.remoteAddress || "127.0.0.1";
   }
 
-  // Giao diện tự động báo kết quả khi VNPay trả về
   function renderReturnHtml({ title, message, paymentStatus, orderId }) {
     const statusColor = paymentStatus === "paid" ? "#1B7F4D" : paymentStatus === "pending" ? "#B45309" : "#B91C1C";
     return `<!DOCTYPE html>
@@ -29,7 +28,7 @@ export function createPaymentController(service) {
         <h1>${title}</h1>
         <p>${message}</p>
         <p>Mã đơn hàng: <strong>#${orderId || "-"}</strong></p>
-        <a href="/#orders" class="btn">Quay lại quản lý đơn hàng</a>
+        <a href="http://127.0.0.1:5173/#orders" class="btn">Quay lại quản lý đơn hàng</a>
       </div>
     </body>
     </html>`;
@@ -37,24 +36,50 @@ export function createPaymentController(service) {
 
   return {
     async createVnpay(req, res) {
-      const userId = req.user.user_id;
-      const orderId = Number(req.body.order_id || req.body.orderId);
-      if (!orderId) return res.status(400).json({ success: false, message: "Thiếu mã đơn hàng" });
+      try {
+        // SỬA LỖI Ở ĐÂY: Gọi đối tượng req.auth theo đúng chuẩn Mục 4.3.2 của báo cáo
+        const userObj = req.auth || req.user;
+        const userId = Number(userObj?.userId || userObj?.user_id || userObj?.id);
 
-      const data = await service.createVnpayUrl(userId, orderId, clientIp(req));
-      res.json({ success: true, data });
+        if (!userId) {
+          return res.status(401).json({ success: false, message: "Chưa xác thực người dùng" });
+        }
+
+        const orderId = Number(req.body.order_id || req.body.orderId);
+        if (!orderId) {
+          return res.status(400).json({ success: false, message: "Thiếu mã đơn hàng" });
+        }
+
+        const data = await service.createVnpayUrl(userId, orderId, clientIp(req));
+
+        // Trả URL để Frontend tự động redirect sang cổng mã QR của VNPay
+        res.json({ success: true, data });
+
+      } catch (error) {
+        console.error("Lỗi tạo link VNPay:", error);
+        res.status(500).json({ success: false, message: "Lỗi hệ thống", error: error.message });
+      }
     },
 
     async vnpayReturn(req, res) {
-      const result = await service.processVnpayCallback(req.query);
-      const title = result.paymentStatus === "paid" ? "Thanh toán thành công" : "Thanh toán thất bại";
-      const message = result.paymentStatus === "paid" ? "VNPay đã xác nhận thanh toán." : "Giao dịch không thành công hoặc đã bị hủy.";
-      res.status(200).send(renderReturnHtml({ title, message, paymentStatus: result.paymentStatus, orderId: result.orderId }));
+      try {
+        const result = await service.processVnpayCallback(req.query);
+        const title = result.paymentStatus === "paid" ? "Thanh toán thành công" : "Thanh toán thất bại";
+        const message = result.paymentStatus === "paid" ? "VNPay đã xác nhận thanh toán." : "Giao dịch không thành công hoặc đã bị hủy.";
+        res.status(200).send(renderReturnHtml({ title, message, paymentStatus: result.paymentStatus, orderId: result.orderId }));
+      } catch (error) {
+        console.error("Lỗi callback:", error);
+        res.status(500).send(renderReturnHtml({ title: "Lỗi hệ thống", message: "Đã xảy ra lỗi khi xác nhận thanh toán", paymentStatus: "failed" }));
+      }
     },
 
     async vnpayIpn(req, res) {
-      const result = await service.processVnpayCallback(req.query);
-      res.status(200).json({ RspCode: result.rspCode, Message: result.message });
+      try {
+        const result = await service.processVnpayCallback(req.query);
+        res.status(200).json({ RspCode: result.rspCode, Message: result.message });
+      } catch (error) {
+        res.status(200).json({ RspCode: "99", Message: "Unknow error" });
+      }
     }
   };
 }
