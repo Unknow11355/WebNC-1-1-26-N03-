@@ -1,9 +1,13 @@
             import http from "node:http";
             import https from "node:https";
+            import { publicOrigin, renderSeo } from "./seo.mjs";
+            const siteOrigin = publicOrigin();
             import { readFile, readdir } from "node:fs/promises";
             const backend = new URL(process.env.API_ORIGIN || "http://127.0.0.1:3000");
             const files = new Map([
               ["/", ["index.html", "text/html"]],
+              ["/robots.txt", ["robots.txt", "text/plain"]],
+              ["/sitemap.xml", ["sitemap.xml", "application/xml"]],
               ["/app.js", ["app.js", "text/javascript"]],
               ["/core.js", ["core.js", "text/javascript"]],
               ["/staff-tools.js", ["staff-tools.js", "text/javascript"]],
@@ -83,7 +87,10 @@
                 return;
               }
               try {
-                const data = await readFile(new URL(file[0], import.meta.url));
+                let data = await readFile(new URL(file[0], import.meta.url));
+                if (path === "/robots.txt" || path === "/sitemap.xml") {
+                  data = renderSeo(data.toString("utf8"), siteOrigin);
+                }
                 res.writeHead(200, {
                   "Content-Type": file[1] + "; charset=utf-8",
                   "Cache-Control": "no-cache",
