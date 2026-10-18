@@ -18,7 +18,10 @@ test('Unexpected errors remain HTTP 500', () => {
 
 test('Real multipart request over 5 MiB gets 413 through shared error handler', async () => {
   const app = express();
-  app.use((req, res, next) => { req.traceId = 'upload-size-regression'; next(); });
+  app.use((req, res, next) => {
+    req.traceId = 'upload-size-regression';
+    next();
+  });
   const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
   let reachedController = false;
   app.post('/upload', upload.single('file'), (req, res) => {
@@ -27,12 +30,18 @@ test('Real multipart request over 5 MiB gets 413 through shared error handler', 
   });
   app.use(errorHandler);
   const server = app.listen(0, '127.0.0.1');
-  await new Promise(resolve => server.once('listening', resolve));
+  await new Promise((resolve) => server.once('listening', resolve));
   try {
     const form = new FormData();
-    form.append('file', new Blob([new Uint8Array(5 * 1024 * 1024 + 1)], { type: 'image/png' }), 'large.png');
+    form.append(
+      'file',
+      new Blob([new Uint8Array(5 * 1024 * 1024 + 1)], { type: 'image/png' }),
+      'large.png',
+    );
     const response = await fetch(`http://127.0.0.1:${server.address().port}/upload`, {
-      method: 'POST', body: form, signal: AbortSignal.timeout(10000),
+      method: 'POST',
+      body: form,
+      signal: AbortSignal.timeout(10000),
     });
     assert.equal(response.status, 413);
     const body = await response.json();
@@ -43,6 +52,6 @@ test('Real multipart request over 5 MiB gets 413 through shared error handler', 
     assert.equal(body.error.stack, undefined);
   } finally {
     server.closeAllConnections();
-    await new Promise(resolve => server.close(resolve));
+    await new Promise((resolve) => server.close(resolve));
   }
 });

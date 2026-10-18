@@ -6,9 +6,10 @@ export function createOriginGuard(origins = []) {
   const safe = new Set(['GET', 'HEAD', 'OPTIONS']);
   return (req, res, next) => {
     const origin = req.get('origin');
-    const method = req.method === 'OPTIONS'
-      ? (req.get('access-control-request-method') || 'OPTIONS').toUpperCase()
-      : req.method;
+    const method =
+      req.method === 'OPTIONS'
+        ? (req.get('access-control-request-method') || 'OPTIONS').toUpperCase()
+        : req.method;
     if (safe.has(method)) return next();
     // CLI/server clients need no Origin but must still pass route authentication.
     if (origin === undefined && req.get('sec-fetch-site') !== 'cross-site') return next();

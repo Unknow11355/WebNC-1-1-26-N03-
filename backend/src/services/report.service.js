@@ -44,6 +44,27 @@ function assertAdmin(auth) {
   if (auth?.role !== 'admin') throw new AppError(403, 'FORBIDDEN', 'Chỉ admin được xem báo cáo');
 }
 
+function positiveId(value) {
+  const id = Number(value);
+  if (!Number.isSafeInteger(id) || id <= 0)
+    throw new AppError(400, 'VALIDATION_ERROR', 'employee_id không hợp lệ');
+  return id;
+}
+
+function pageWindow(query = {}) {
+  const page = Number(query.page ?? 1);
+  const limit = Number(query.limit ?? 20);
+  if (
+    !Number.isSafeInteger(page) ||
+    page < 1 ||
+    !Number.isSafeInteger(limit) ||
+    limit < 1 ||
+    limit > 20
+  )
+    throw new AppError(400, 'VALIDATION_ERROR', 'Phân trang không hợp lệ (tối đa 20 dòng)');
+  return { page, limit, offset: (page - 1) * limit };
+}
+
 function meta(window) {
   return {
     filter: { from: window.from, to: window.to },
@@ -100,6 +121,30 @@ export function createReportService(repository) {
       const window = dateWindow(query);
       const result = await repository.employees(window);
       return withCacheStatus({ data: result, meta: meta(window) }, 'BYPASS');
+    },
+
+    async employeeActivity(auth, rawEmployeeId, query) {
+      assertAdmin(auth);
+      const employeeId = positiveId(rawEmployeeId);
+      const window = dateWindow(query);
+      const page = pageWindow(query);
+      const result = await repository.employeeActivity(employeeId, { ...window, ...page });
+      if (!result.employee) throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy nhân viên');
+      return {
+        data: {
+          employee: result.employee,
+          orders: result.orders,
+          shifts: result.shifts,
+          order_meta: {
+            page: page.page,
+            limit: page.limit,
+            total: result.orderTotal,
+            totalPages: Math.ceil(result.orderTotal / page.limit),
+          },
+          shift_meta: { total: result.shiftTotal },
+        },
+        meta: meta(window),
+      };
     },
   };
 }
